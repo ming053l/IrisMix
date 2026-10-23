@@ -16,4 +16,4 @@ IrisMix 將參考彩妝回收為可重用的覆蓋率與顏色圖層，再組合
 
 研究頁支援 [繁體中文](https://ming053l.github.io/IrisMix/?lang=zh)／[English](https://ming053l.github.io/IrisMix/?lang=en)，切換時保留選取範例、比較比例與影片進度，並在本機記住語言偏好。
 
-研究比較區參考 [FlashReFocus](https://ming053l.github.io/FlashReFocus/) 的展示順序，提供兩組多參考彩妝、四種方法的互動對照、Stage II 實際渲染比較，以及 LayerBeauty-Creative、MF2K、CPM-Real 的主表節錄。六篇 Related work 連結原始論文或作者頁面。所有比較支援繁體中文與英文。
+研究比較區參考 [FlashReFocus](https://ming053l.github.io/FlashReFocus/) 的展示順序，提供兩組多參考彩妝、四種方法的互動對照、Stage II 實際渲染比較，以及 LayerBeauty-Creative、MF2K、CPM-Real 的主表節錄。七篇 Related work 連結原始論文或作者頁面。所有比較支援繁體中文與英文。
