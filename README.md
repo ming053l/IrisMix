@@ -13,3 +13,5 @@ IrisMix 將參考彩妝回收為可重用的覆蓋率與顏色圖層，再組合
 © 2026 Chia-Ming Lee. All rights reserved. Third-party materials retain their respective rights.
 
 頁面以 ReplayMark 的學術研究頁編排為參考，提供首頁動態預覽、四章節流程動畫、完整展示影片，以及互動結果比較。動畫沿用已公開的研究影片，不會啟動新的推論。
+
+研究頁支援 [繁體中文](https://ming053l.github.io/IrisMix/?lang=zh)／[English](https://ming053l.github.io/IrisMix/?lang=en)，切換時保留選取範例、比較比例與影片進度，並在本機記住語言偏好。
