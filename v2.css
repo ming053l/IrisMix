@@ -490,3 +490,15 @@ a.ap-tile{text-decoration:none;color:inherit}a.ap-tile *{text-decoration:none}
 
 /* hero height unchanged by the compose/decompose toggle row: give its height back from the bottom padding */
 @media (min-width:861px){.hero-mode{margin-top:14px}.hero-inner{padding-bottom:30px}}
+
+/* hero mode toggle: decompose first, highlighted with a moving neon gradient ring so visitors notice it can be switched */
+#hero-mode{position:relative;display:inline-flex;gap:3px;padding:3px;margin:0;border:0;border-radius:99px;overflow:visible;
+ background:linear-gradient(90deg,#ff4fa3,#b65cff,#3ddcff,#7dffb0,#ff4fa3);background-size:300% 100%;
+ animation:hmShift 5s linear infinite,hmGlow 2.4s ease-in-out infinite}
+#hero-mode button{border:0;border-radius:99px;background:rgba(255,255,255,.94);color:var(--ink);font-weight:600;padding:7px 15px;font-size:13.5px}
+#hero-mode button:hover{background:#fff}
+#hero-mode button[aria-pressed=true]{background:var(--ink);color:#fff}
+.hero-mode .hm-l{background:linear-gradient(90deg,#ff4fa3,#b65cff,#3ddcff);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes hmShift{to{background-position:300% 0}}
+@keyframes hmGlow{0%,100%{box-shadow:0 0 10px rgba(255,79,163,.45),0 0 18px rgba(61,220,255,.25)}50%{box-shadow:0 0 16px rgba(182,92,255,.6),0 0 28px rgba(61,220,255,.45)}}
+@media (prefers-reduced-motion:reduce){#hero-mode{animation:none;box-shadow:0 0 12px rgba(255,79,163,.45)}}
