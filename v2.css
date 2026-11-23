@@ -440,3 +440,50 @@ dialog{border:0;background:rgba(250,248,249,.97);color:var(--ink);width:100vw;he
 .gp-stage.gp-wide{aspect-ratio:12/5}
 @media (max-width:900px){.dc-grid{grid-template-columns:1fr}.rp-body{grid-template-columns:1fr}.rp-looks{max-height:260px}}
 .rp-ref[hidden],#gp-note[hidden]{display:none}
+/* round 3: comparisons, hero decomposition */
+.cmp-row{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.cmp-row .cd-pills{margin-bottom:0}
+.cmp-side{flex:0 0 auto;min-width:54px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+#gp-rounds{margin:0 0 10px}
+#gp-rounds[hidden]{display:none}
+.cd-pills button[disabled]{opacity:.35;cursor:not-allowed}
+.gp-num{position:absolute;bottom:12px;font:600 12.5px var(--mono);background:#fff;border-radius:99px;padding:3px 10px;box-shadow:0 2px 8px rgba(30,26,30,.15)}
+.gp-num.l{left:12px}.gp-num.r{right:12px}
+.gp-num[hidden],.gp-desc[hidden]{display:none}
+.gp-desc{margin:12px 2px 0;color:var(--ink2);font-size:14px}
+.cd-body2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.cd-body2 .cd-stage{max-width:600px;width:100%;margin:0}
+.cd-all{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cd-all button{padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#fff;text-align:center;font-size:11px;font-weight:600;color:var(--ink2)}
+.cd-all button img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.cd-all button span{display:block;padding:3px 2px}
+.cd-all button[aria-pressed=true]{border-color:var(--rose)}
+.cd-refs{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.cd-refs .cmp-side{width:100%}
+.cd-refs figure{margin:0;width:84px;text-align:center;font-size:11px;color:var(--mute)}
+.cd-refs img{width:84px;height:84px;object-fit:cover;border-radius:10px;display:block}
+.ig-row figure img{background:var(--card2)}
+.hero-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:18px}
+.hm-l{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.dz{position:absolute;inset:0;z-index:0;user-select:none;--t:0}
+.dz[hidden],.pg[hidden]{display:none}
+.dz-box{position:absolute;right:4%;top:76px;height:min(84%,calc(100vh - 160px));min-height:420px;aspect-ratio:1/2.04}
+.dz-face,.dz-slot,.dz-card{position:absolute;left:0;width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden}
+.dz-face{top:0;box-shadow:0 14px 40px rgba(30,26,30,.14);background:#eee}
+.dz-cv{display:block;width:100%;height:100%}
+.dz-slot{bottom:0;border:2px dashed var(--line2);background:repeating-conic-gradient(#eeeaec 0 25%,#faf8f9 0 50%) 0 0/22px 22px}
+.dz-card{top:0;cursor:grab;touch-action:none;transform:translateY(calc(var(--t)*104%));z-index:3}
+.dz-card:before{content:"";position:absolute;inset:0;background:repeating-conic-gradient(#e6e2e4 0 25%,#f7f5f6 0 50%) 0 0/22px 22px;opacity:var(--t)}
+.dz-card img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.dz-tag{position:absolute;left:10px;top:10px;z-index:4;font-size:12px;font-weight:600;background:#fff;border-radius:99px;padding:3px 10px;box-shadow:0 2px 8px rgba(30,26,30,.15)}
+.dz-tray{position:absolute;right:30%;top:50%;transform:translateY(-50%);z-index:4;width:178px;display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:14px;padding:10px}
+.dz-h b{display:block;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:4px}
+.dz-h small{display:block;font-size:11.5px;color:var(--ink2);line-height:1.4}
+.dz-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dz-thumbs .th{width:auto;height:auto;aspect-ratio:1}
+.dz-row{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;color:var(--ink2)}
+.dz-row input{width:100%;accent-color:var(--rose)}
+@media (max-width:1100px){.dz-tray{right:auto;left:4%;top:auto;bottom:16px;transform:none}}
+@media (max-width:860px){.dz{position:relative;height:120vw}.dz-box{height:96%}.cd-body2{grid-template-columns:1fr}}
+.ig-row figure img{aspect-ratio:1;object-fit:cover;height:auto}
+a.ap-tile{text-decoration:none;color:inherit}a.ap-tile *{text-decoration:none}
