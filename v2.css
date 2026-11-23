@@ -487,3 +487,6 @@ dialog{border:0;background:rgba(250,248,249,.97);color:var(--ink);width:100vw;he
 @media (max-width:860px){.dz{position:relative;height:120vw}.dz-box{height:96%}.cd-body2{grid-template-columns:1fr}}
 .ig-row figure img{aspect-ratio:1;object-fit:cover;height:auto}
 a.ap-tile{text-decoration:none;color:inherit}a.ap-tile *{text-decoration:none}
+
+/* hero height unchanged by the compose/decompose toggle row: give its height back from the bottom padding */
+@media (min-width:861px){.hero-mode{margin-top:14px}.hero-inner{padding-bottom:30px}}
