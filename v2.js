@@ -420,13 +420,67 @@ cv.addEventListener('pointerdown',user);
 Promise.all([load(MD+'src.webp'),...[0,1,2,3].map(k=>load(`${MD}lip${k}.webp`))]).then(([s,...l])=>{src=s;lips=l;render();badge(true);
  if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let st=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!st){st=true;demo()}},{threshold:.3}).observe(root)}})})();
 
-/* group photo: before / after wipe, auto sweep until touched */
-(()=>{const root=$('#group');if(!root)return;const st=$('.gp-stage',root),b=$('img.b',st),ln=$('.gp-line',st);let p=.5,touched=false,tm=null,t0=0;
+/* group photos: several rounds of makeup, IrisMix only; before = bare faces, after = selected round; drag to compare */
+(()=>{const root=$('#group');if(!root)return;const GD=window.IRIS_GROUP;
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const SETS={daily:{t:{en:'Everyday makeup',sc:'日常妆',zh:'日常妝',ja:'デイリーメイク',ko:'데일리 메이크업'},r:[
+  {en:'Round 1: lips',sc:'第 1 轮：唇妆',zh:'第 1 輪：唇妝',ja:'ラウンド1：リップ',ko:'1라운드: 립'},
+  {en:'Round 2: + lashes',sc:'第 2 轮：+ 睫毛',zh:'第 2 輪：+ 睫毛',ja:'ラウンド2：+ まつ毛',ko:'2라운드: + 속눈썹'},
+  {en:'Round 3: + eyeshadow',sc:'第 3 轮：+ 眼影',zh:'第 3 輪：+ 眼影',ja:'ラウンド3：+ アイシャドウ',ko:'3라운드: + 아이섀도'}]},
+ kpop:{t:{en:'Face paint',sc:'彩绘',zh:'彩繪',ja:'フェイスペイント',ko:'페이스 페인팅'},r:[
+  {en:'Round 1: face paint',sc:'第 1 轮：彩绘',zh:'第 1 輪：彩繪',ja:'ラウンド1：フェイスペイント',ko:'1라운드: 페이스 페인팅'},
+  {en:'Round 2: + camellia, red lips',sc:'第 2 轮：+ 山茶花、红唇',zh:'第 2 輪：+ 山茶花、紅唇',ja:'ラウンド2：+ 椿、赤いリップ',ko:'2라운드: + 동백꽃, 레드 립'},
+  {en:'Round 3: + glow (under)',sc:'第 3 轮：+ 光泽（置于下层）',zh:'第 3 輪：+ 光澤（置於下層）',ja:'ラウンド3：+ グロウ（下層）',ko:'3라운드: + 글로우(아래층)'}]}};
+const st=$('.gp-stage',root),a=$('img.a',st),b=$('img.b',st),ln=$('.gp-line',st),er=$('em.r',st),tabs=$('#gp-tabs',root),rb=$('#gp-rounds',root),note=$('#gp-note',root);
+let k='daily',r=2,p=.5,touched=false,tm=null;
+a.addEventListener('load',()=>{if(a.naturalWidth)st.style.aspectRatio=a.naturalWidth+'/'+a.naturalHeight});
 function set(x){p=Math.max(0,Math.min(1,x));b.style.clipPath=`inset(0 0 0 ${p*100}%)`;ln.style.left=p*100+'%'}
-const pos=e=>{const r=st.getBoundingClientRect();return((e.touches?e.touches[0].clientX:e.clientX)-r.left)/r.width};
-let drag=false;st.addEventListener('pointerdown',e=>{touched=true;clearInterval(tm);drag=true;st.setPointerCapture(e.pointerId);set(pos(e))});
+function halt(){touched=true;clearInterval(tm)}
+function ui(){tabs.innerHTML=Object.entries(SETS).map(([id,v])=>`<button type="button" data-k="${id}" aria-pressed="${id===k}">${L5(v.t)}</button>`).join('');
+ rb.innerHTML=SETS[k].r.map((v,i)=>`<button type="button" data-r="${i}" aria-pressed="${i===r}">${L5(v)}</button>`).join('');
+ $$('button',tabs).forEach(x=>x.onclick=()=>{halt();k=x.dataset.k;r=2;ui()});$$('button',rb).forEach(x=>x.onclick=()=>{halt();r=+x.dataset.r;ui()});
+ a.src=V+GD[k][0];b.src=V+GD[k][r+1];er.innerHTML=L5(SETS[k].r[r]);note.hidden=k!=='daily'}
+const pos=e=>{const q=st.getBoundingClientRect();return((e.touches?e.touches[0].clientX:e.clientX)-q.left)/q.width};
+let drag=false;st.addEventListener('pointerdown',e=>{halt();drag=true;st.setPointerCapture(e.pointerId);set(pos(e))});
 st.addEventListener('pointermove',e=>{if(drag)set(pos(e))});st.addEventListener('pointerup',()=>drag=false);
-set(.5);if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let s=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!s){s=true;t0=performance.now();tm=setInterval(()=>{if(touched)return clearInterval(tm);const t=(performance.now()-t0)/1000;set(.5+.42*Math.sin(t*.8))},40)}},{threshold:.3}).observe(root)}})();
+ui();set(.5);if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let s0=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!s0){s0=true;const t0=performance.now();tm=setInterval(()=>{if(touched)return clearInterval(tm);const t=(performance.now()-t0)/1000;set(.5+.42*Math.sin(t*.8))},40)}},{threshold:.3}).observe(root)}})();
+
+/* decomposition of real photographs: tabs by group; photograph, bare face and makeup layer per example */
+(()=>{const root=$('#decomp');if(!root)return;const DC=window.IRIS_DEC;
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const G=[['halloween',{en:'Halloween and cosplay',sc:'万圣节与角色扮演',zh:'萬聖節與角色扮演',ja:'ハロウィンとコスプレ',ko:'핼러윈과 코스프레'}],
+ ['decorative',{en:'Decorative makeup',sc:'装饰性妆容',zh:'裝飾性妝容',ja:'デコレーションメイク',ko:'데코레이션 메이크업'}],
+ ['paint',{en:'Face paint',sc:'彩绘',zh:'彩繪',ja:'フェイスペイント',ko:'페이스 페인팅'}],
+ ['illustration',{en:'Digital illustrations',sc:'数字插画',zh:'數位插畫',ja:'デジタルイラスト',ko:'디지털 일러스트'}]];
+const H={photo:{en:'Photograph',sc:'照片',zh:'照片',ja:'写真',ko:'사진'},ill:{en:'Illustration',sc:'插画',zh:'插畫',ja:'イラスト',ko:'일러스트'},
+ bare:{en:'Bare face',sc:'素颜',zh:'素顏',ja:'すっぴん',ko:'민낯'},layer:{en:'Makeup layer',sc:'妆容图层',zh:'妝容圖層',ja:'メイクレイヤー',ko:'메이크업 레이어'}};
+const tabs=$('#dc-tabs',root),grid=$('#dc-grid',root);let g='halloween';
+function draw(){tabs.innerHTML=G.map(([id,t])=>`<button type="button" data-g="${id}" aria-pressed="${id===g}">${L5(t)}</button>`).join('');
+ $$('button',tabs).forEach(x=>x.onclick=()=>{g=x.dataset.g;draw()});
+ const first=g==='illustration'?H.ill:H.photo;
+ grid.innerHTML=DC[g].map(row=>`<div class="dc-ex">${row.map((f,j)=>`<figure><img src="${V}${f}" alt="" loading="lazy"><figcaption>${L5([first,H.bare,H.layer][j])}</figcaption></figure>`).join('')}</div>`).join('')}
+draw()})();
+
+/* real photographs: pick a portrait, then show the photograph, the recovered bare face or one rendered look */
+(()=>{const root=$('#realphotos');if(!root)return;const RP=window.IRIS_REAL;
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const T={photo:{en:'Photograph',sc:'原照片',zh:'原照片',ja:'元の写真',ko:'원본 사진'},bare:{en:'Bare face',sc:'素颜',zh:'素顏',ja:'すっぴん',ko:'민낯'},look:{en:'Look',sc:'妆容',zh:'妝容',ja:'メイク',ko:'메이크업'}};
+const lookName=(l,i)=>l.name||{en:`Look ${i+1}`,sc:`妆容 ${i+1}`,zh:`妝容 ${i+1}`,ja:`メイク ${i+1}`,ko:`메이크업 ${i+1}`};
+const count=n=>({en:`${n} looks on this bare face`,sc:`这张素颜上的 ${n} 组妆容`,zh:`這張素顏上的 ${n} 組妝容`,ja:`このすっぴんにのせた ${n} 種類のメイク`,ko:`이 민낯에 적용한 메이크업 ${n}가지`});
+const ppl=$('#rp-people',root),img=$('#rp-img',root),ref=$('#rp-ref',root),tag=$('#rp-tag',root),desc=$('#rp-desc',root),mode=$('#rp-mode',root),cnt=$('#rp-count',root),lk=$('#rp-looks',root);
+let pi=0,view='look',li=0;
+RP.forEach((p,i)=>{const b=document.createElement('button');b.className='th';b.type='button';b.setAttribute('aria-label','Photograph '+(i+1));b.setAttribute('aria-pressed',i===0);b.innerHTML=`<img src="${V}${p.th}" alt="" loading="lazy">`;b.onclick=()=>{pi=i;li=0;view='look';press($$('.th',ppl),b);people()};ppl.append(b)});
+function people(){const p=RP[pi];desc.innerHTML=L5(p.desc);cnt.innerHTML=L5(count(p.looks.length));
+ lk.innerHTML=p.looks.map((l,i)=>`<button type="button" class="th" data-i="${i}" aria-label="Look ${i+1}"><img src="${V}${l.th}" alt="" loading="lazy">${l.ref?`<img class="rp-mini" src="${V}${l.ref}" alt="" loading="lazy">`:''}</button>`).join('');
+ $$('button',lk).forEach(b=>b.onclick=()=>{li=+b.dataset.i;view='look';show()});show()}
+function show(){const p=RP[pi],l=p.looks[li];
+ mode.innerHTML=['photo','bare','look'].map(v=>`<button type="button" data-v="${v}" aria-pressed="${v===view}">${L5(T[v])}</button>`).join('');
+ $$('button',mode).forEach(b=>b.onclick=()=>{view=b.dataset.v;show()});
+ img.src=V+(view==='photo'?p.photo:view==='bare'?p.bare:l.img);
+ tag.innerHTML=view==='look'?L5(lookName(l,li)):L5(T[view]);
+ ref.hidden=!(view==='look'&&l.ref);if(view==='look'&&l.ref)ref.src=V+l.ref;
+ $$('button',lk).forEach((b,i)=>b.setAttribute('aria-pressed',String(view==='look'&&i===li)))}
+people()})();
 
 /* layer lab: random mix by part, recipe card (color, coverage, location, copy hex), compare two looks with a difference map */
 (()=>{const root=$('#lab');if(!root)return;const Z=V+'zone/',ZM=window.IRIS_ZONE,N=640;

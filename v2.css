@@ -415,3 +415,28 @@ dialog{border:0;background:rgba(250,248,249,.97);color:var(--ink);width:100vw;he
 .ap-gl{display:flex;flex-direction:column;justify-content:center;gap:6px}.ap-gl img{height:auto!important}
 .ap-cols{display:grid;grid-template-columns:repeat(4,1fr);column-gap:.86%;text-align:center;font-size:12.5px;font-weight:600;color:var(--ink2)}.ap-cols .ours{color:var(--rose)}
 .subh{font-size:20px;margin:0 0 6px}.subp{margin:0 0 14px;color:var(--ink2);max-width:860px}
+/* decomposition of real photographs */
+.dc .seg{margin-bottom:16px}
+.dc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 26px}
+.dc-ex{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.dc-ex figure{margin:0}
+.dc-ex img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--card2)}
+.dc-ex figcaption{font-size:11.5px;color:var(--mute);text-align:center;margin-top:4px}
+/* real photographs */
+.rp #rp-people{margin-bottom:14px}
+.rp-body{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;align-items:start}
+.rp-stage{position:relative;border-radius:14px;overflow:hidden;background:var(--card2);display:flex;justify-content:center}
+.rp-stage #rp-img{display:block;max-width:100%;max-height:640px;width:auto;height:auto}
+.rp-ref{position:absolute;right:10px;bottom:10px;width:24%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.rp-tag{position:absolute;left:10px;top:10px;font-size:12px;font-weight:600;background:#fff;border-radius:99px;padding:3px 10px;box-shadow:0 2px 8px rgba(30,26,30,.15)}
+.rp-desc{margin:0 0 12px;color:var(--ink2);font-size:14.5px}
+.rp-side .seg{margin-bottom:14px}
+.rp-looks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;max-height:430px;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}
+.rp-looks .th{width:auto;height:auto;aspect-ratio:1;position:relative}
+.rp-mini{position:absolute;right:2px;bottom:2px;width:42%!important;height:42%!important;border-radius:6px;border:1.5px solid #fff}
+/* group photos, several rounds */
+.gp-ctl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px}
+.gp-ctl .cd-pills{margin-bottom:0}
+.gp-stage.gp-wide{aspect-ratio:12/5}
+@media (max-width:900px){.dc-grid{grid-template-columns:1fr}.rp-body{grid-template-columns:1fr}.rp-looks{max-height:260px}}
+.rp-ref[hidden],#gp-note[hidden]{display:none}
