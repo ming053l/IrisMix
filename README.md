@@ -21,6 +21,11 @@
 </p>
 
 <p align="center">
+  <a href="https://ming053l.github.io/images/web/irismix-teaser.mp4"><img src="assets/readme/irismix_loop.webp" width="100%" alt="IrisMix in panels: a makeup photo is split into its bare face and an editable makeup layer, the layer is rendered on a new face, and parts of the rendered layer are recolored; then the same layer is rendered on four more real photos"></a>
+  <br><sub>Click the animation for the full research video.</sub>
+</p>
+
+<p align="center">
   <img src="assets/v2/fig/teaser.webp" width="100%" alt="IrisMix teaser: makeup composed from several references, comparison over repeated edits, occlusion-aware transfer with glasses, and layer edits after rendering">
 </p>
 
