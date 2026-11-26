@@ -713,6 +713,39 @@ const start=()=>Promise.all(['src','photo','eyes','lips','paint'].map(n=>load(RD
 if(window.__EMB&&window.__EMB[RD+'meta.json']){try{axis=JSON.parse(atob(window.__EMB[RD+'meta.json'].split(',')[1])).axis}catch(e){}start()}
 else fetch(RD+'meta.json').then(r=>r.json()).then(m=>{axis=m.axis}).catch(()=>{}).finally(start)})();
 
+/* transfer between real photographs: saved renders of layers decomposed from real makeup photos on four real portraits */
+(()=>{const root=$('#r2r');if(!root)return;const RR=V+'r2r/';
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const T={ref:{en:'Reference photo',sc:'参考照片',zh:'參考照片',ja:'参照写真',ko:'참조 사진'},tgt:{en:'Target portrait',sc:'目标人像',zh:'目標人像',ja:'対象の人物',ko:'대상 인물'},
+ view:{en:'View',sc:'视图',zh:'檢視',ja:'表示',ko:'보기'},photo:{en:'Target photo',sc:'目标照片',zh:'目標照片',ja:'対象の写真',ko:'대상 사진'},
+ bare:{en:'Makeup removed',sc:'去除妆容',zh:'去除妝容',ja:'メイク除去',ko:'메이크업 제거'},res:{en:'Result',sc:'结果',zh:'結果',ja:'結果',ko:'결과'},
+ layer:{en:'Makeup layer',sc:'妆容图层',zh:'妝容圖層',ja:'メイクレイヤー',ko:'메이크업 레이어'},
+ hint:{en:'Saved renders: each result is one render of the reference layer on the bare face of the target.',sc:'已保存的渲染结果：每张结果都是参考图层在目标素颜上渲染一次所得。',zh:'已儲存的渲染結果：每張結果都是參考圖層在目標素顏上渲染一次所得。',ja:'保存済みのレンダリング結果です。各結果は、参照レイヤーを対象のすっぴんに1回レンダリングしたものです。',ko:'저장된 렌더링 결과입니다. 각 결과는 참조 레이어를 대상의 민낯에 한 번 렌더링한 것입니다.'},
+ auto:{en:'Auto demo · click to edit',sc:'自动演示中 · 点击即可编辑',zh:'自動示範中 · 點一下即可編輯',ja:'自動デモ中 · クリックで編集',ko:'자동 데모 중 · 클릭하면 편집'},
+ editm:{en:'Edit mode · paused',sc:'编辑模式 · 已暂停',zh:'編輯模式 · 已暫停',ja:'編集モード · 一時停止中',ko:'편집 모드 · 일시정지됨'},play:{en:'Play',sc:'播放',zh:'播放',ja:'再生',ko:'재생'}};
+const TG=['p9','p4','p5','p10'],RF=['pink3','hearts','thirdeye','inkdragon','poker2','icequeen'];
+let st={t:0,r:0,view:'res'},touched=false,tm=null;
+const img=$('.r2-img',root),side=$('.md-side',root);
+side.innerHTML=`<div class="re-row"><b>${L5(T.ref)}</b><div class="r2-th r2-refs">${RF.map((n,k)=>`<button type="button" data-k="${k}" aria-pressed="${!k}" aria-label="${n}"><img src="${RR}ref_${n}_photo.webp" alt="" loading="lazy"></button>`).join('')}</div></div>
+<div class="re-row"><b>${L5(T.tgt)}</b><div class="r2-th r2-tgts">${TG.map((t,k)=>`<button type="button" data-k="${k}" aria-pressed="${!k}" aria-label="${t}"><img src="${RR}${t}_photo.webp" alt="" loading="lazy"></button>`).join('')}</div></div>
+<div class="re-row"><b>${L5(T.view)}</b><div class="seg r2-view">${['photo','bare','res'].map(v=>`<button type="button" data-v="${v}" aria-pressed="${v==='res'}">${L5(T[v])}</button>`).join('')}</div></div>
+<div class="r2-ref"><figure><img class="r2-rp" alt=""><figcaption>${L5(T.ref)}</figcaption></figure><figure><img class="r2-rl" alt=""><figcaption>${L5(T.layer)}</figcaption></figure></div>
+<p class="zn-hint">${L5(T.hint)}</p>`;
+const rp=$('.r2-rp',side),rl=$('.r2-rl',side);
+function show(){const t=TG[st.t],n=RF[st.r];img.src=RR+t+'_'+(st.view==='res'?n:st.view)+'.webp';rp.src=RR+'ref_'+n+'_photo.webp';rl.src=RR+'ref_'+n+'_layer.webp';
+ $$('.r2-refs button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.r));$$('.r2-tgts button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.t));
+ $$('.r2-view button',side).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===st.view))}
+const MB=$('.md-badge',root);function badge(a){MB.innerHTML=a?`<span class="dot"></span>${L5(T.auto)}`:`<span>✎ ${L5(T.editm)}</span><button type="button" class="pg-play">▶ ${L5(T.play)}</button>`;MB.classList.toggle('auto',a);const b=$('.pg-play',MB);b&&(b.onclick=()=>{touched=false;badge(true);demo()})}
+function user(){if(touched)return;touched=true;clearInterval(tm);badge(false)}
+side.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;user();const p=b.parentElement;
+ if(p.classList.contains('r2-refs')){st.r=+b.dataset.k;st.view='res'}else if(p.classList.contains('r2-tgts'))st.t=+b.dataset.k;else if(p.classList.contains('r2-view'))st.view=b.dataset.v;show()});
+img.addEventListener('pointerdown',user);
+const SEQ=[];TG.forEach((t,ti)=>{SEQ.push({t:ti,r:(ti*2)%RF.length,view:'photo'},{t:ti,r:(ti*2)%RF.length,view:'bare'});for(let j=0;j<3;j++)SEQ.push({t:ti,r:(ti*2+j)%RF.length,view:'res'})});
+function demo(){clearInterval(tm);let k=0;const step=()=>{if(touched){clearInterval(tm);return}st=Object.assign({},SEQ[k%SEQ.length]);k++;show()};step();tm=setInterval(step,1600)}
+const more=$('.r2-more',root);more&&more.addEventListener('click',()=>{const m=document.getElementById('ap-modal');m&&m.open&&m.close()});
+show();badge(true);
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let go=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!go){go=true;demo()}},{threshold:.3}).observe(root)}})();
+
 (()=>{const g=document.querySelector('.ap-grid');if(!g)return;const M=document.getElementById('ap-modal'),B=M.querySelector('.ap-body'),H=document.getElementById('ap-hold');let cur=null;
 const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting){if(!v.src&&v.dataset.src)v.src=v.dataset.src;v.play().catch(()=>{})}else v.pause()}),{rootMargin:'200px'});
 g.querySelectorAll('video.lazy').forEach(v=>io.observe(v));
