@@ -708,8 +708,8 @@ const D0=()=>({view:'edit',s:1,parts:[1,1,1],lip:-1,hue:-1,mir:0});
 const SEQ=[{view:'photo'},{view:'bare'},{s:.35},{s:.7},{},{parts:[0,1,1]},{parts:[1,0,1]},{parts:[1,1,0]},{},{lip:0},{lip:1},{lip:2},{},{hue:0},{hue:1},{hue:2},{hue:3},{}];
 function demo(){clearInterval(tm);let k=0;const step=()=>{if(touched){clearInterval(tm);return}st=Object.assign(D0(),SEQ[k%SEQ.length]);k++;req()};step();tm=setInterval(step,1500)}
 const load=u=>new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.drawImage(i,0,0,N,N);r(x.getImageData(0,0,N,N).data)};i.src=EM(u)});
-const start=()=>Promise.all(['src','photo','eyes','lips','paint'].map(n=>load(RD+n+'.webp'))).then(([s,p,e,l,t])=>{S=s;P=p;E=e;Lp=l;Pt=t;prep();ready=true;sync();render();badge(true);
- if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let go=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!go){go=true;demo()}},{threshold:.3}).observe(root)}});
+const start=()=>Promise.all(['src','photo','eyes','lips','paint'].map(n=>load(RD+n+'.webp'))).then(([s,p,e,l,t])=>{S=s;P=p;E=e;Lp=l;Pt=t;prep();ready=true;sync();render();badge(true);if(pend&&!touched){pend=false;demo()}});
+let pend=false;const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,AM=document.getElementById('ap-modal'),TL=document.querySelector('[data-open="realedit"]');TL&&TL.addEventListener('click',()=>{if(RM)return;touched=false;badge(true);if(ready)demo();else pend=true});AM&&AM.addEventListener('close',()=>clearInterval(tm));
 if(window.__EMB&&window.__EMB[RD+'meta.json']){try{axis=JSON.parse(atob(window.__EMB[RD+'meta.json'].split(',')[1])).axis}catch(e){}start()}
 else fetch(RD+'meta.json').then(r=>r.json()).then(m=>{axis=m.axis}).catch(()=>{}).finally(start)})();
 
@@ -743,8 +743,46 @@ img.addEventListener('pointerdown',user);
 const SEQ=[];TG.forEach((t,ti)=>{SEQ.push({t:ti,r:(ti*2)%RF.length,view:'photo'},{t:ti,r:(ti*2)%RF.length,view:'bare'});for(let j=0;j<3;j++)SEQ.push({t:ti,r:(ti*2+j)%RF.length,view:'res'})});
 function demo(){clearInterval(tm);let k=0;const step=()=>{if(touched){clearInterval(tm);return}st=Object.assign({},SEQ[k%SEQ.length]);k++;show()};step();tm=setInterval(step,1600)}
 const more=$('.r2-more',root);more&&more.addEventListener('click',()=>{const m=document.getElementById('ap-modal');m&&m.open&&m.close()});
-show();badge(true);
-if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let go=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!go){go=true;demo()}},{threshold:.3}).observe(root)}})();
+show();badge(true);let pend=false;const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,AM=document.getElementById('ap-modal'),TL=document.querySelector('[data-open="r2r"]');TL&&TL.addEventListener('click',()=>{if(RM)return;touched=false;badge(true);if(true)demo();else pend=true});AM&&AM.addEventListener('close',()=>clearInterval(tm));})();
+
+/* interpolating between two looks on a real portrait: coverage and premultiplied color of two recovered layers, linear in t */
+(()=>{const root=$('#morph2');if(!root)return;const MP=V+'morph2/',RR=V+'r2r/',N=720,EM=u=>(window.__EMB&&window.__EMB[u])||u;
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const T={tgt:{en:'Target portrait',sc:'目标人像',zh:'目標人像',ja:'対象の人物',ko:'대상 인물'},a:{en:'Look A',sc:'妆容 A',zh:'妝容 A',ja:'メイク A',ko:'메이크업 A'},
+ b:{en:'Look B',sc:'妆容 B',zh:'妝容 B',ja:'メイク B',ko:'메이크업 B'},t:{en:'Blend',sc:'混合比例',zh:'混合比例',ja:'混合比',ko:'혼합 비율'},
+ hint:{en:'Each position of the slider is computed in the browser from the two cached layers; nothing is rendered again.',sc:'滑杆的每个位置都在浏览器中由两个缓存的图层算出，不会重新渲染。',zh:'拉桿的每個位置都在瀏覽器中由兩個快取的圖層算出，不會重新渲染。',ja:'スライダーの各位置は、キャッシュした2つのレイヤーからブラウザ上で計算され、再レンダリングはしません。',ko:'슬라이더의 각 위치는 캐시된 두 레이어로 브라우저에서 계산되며 다시 렌더링하지 않습니다.'},
+ auto:{en:'Auto demo · click to edit',sc:'自动演示中 · 点击即可编辑',zh:'自動示範中 · 點一下即可編輯',ja:'自動デモ中 · クリックで編集',ko:'자동 데모 중 · 클릭하면 편집'},
+ editm:{en:'Edit mode · paused',sc:'编辑模式 · 已暂停',zh:'編輯模式 · 已暫停',ja:'編集モード · 一時停止中',ko:'편집 모드 · 일시정지됨'},play:{en:'Play',sc:'播放',zh:'播放',ja:'再生',ko:'재생'}};
+const TG=['p4','p5','p10'],RF=['pink3','hearts','thirdeye','inkdragon','poker2','icequeen'];
+let st={t:0,a:5,b:2,u:0},touched=false,tm=null,pend=false,cache={},busy=false;
+const cv=$('canvas',root),cx=cv.getContext('2d');cv.width=cv.height=N;const side=$('.md-side',root);
+const th=(cls,list,src,sel)=>`<div class="r2-th ${cls}">${list.map((n,k)=>`<button type="button" data-k="${k}" aria-pressed="${k===sel}" aria-label="${n}"><img src="${src(n)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+side.innerHTML=`<div class="re-row"><b>${L5(T.tgt)}</b>${th('m2-t',TG,t=>RR+t+'_photo.webp',st.t)}</div>
+<div class="re-row"><b>${L5(T.a)}</b>${th('m2-a',RF,n=>RR+'ref_'+n+'_photo.webp',st.a)}</div>
+<div class="re-row"><b>${L5(T.b)}</b>${th('m2-b',RF,n=>RR+'ref_'+n+'_photo.webp',st.b)}</div>
+<label class="re-row re-s"><b>${L5(T.t)}</b><input type="range" min="0" max="100" value="0" aria-label="blend"><i>A</i></label>
+<p class="zn-hint">${L5(T.hint)}</p>`;
+const rng=$('input',side),pct=$('.re-s i',side);
+const load=u=>cache[u]||(cache[u]=new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.drawImage(i,0,0,N,N);r(x.getImageData(0,0,N,N).data)};i.src=EM(u)}));
+let D=null;
+async function data(){const t=TG[st.t];const [T0,A,B]=await Promise.all([load(RR+t+'_bare.webp'),load(MP+t+'_'+RF[st.a]+'.webp'),load(MP+t+'_'+RF[st.b]+'.webp')]);D={T0,A,B};render()}
+function render(){if(!D)return;const {T0,A,B}=D,u=st.u,out=cx.createImageData(N,N),o=out.data;
+ for(let q=0;q<o.length;q+=4){const a1=A[q+3]/255*(1-u),a2=B[q+3]/255*u,a=a1+a2;
+  o[q]=T0[q]*(1-a)+a1*A[q]+a2*B[q];o[q+1]=T0[q+1]*(1-a)+a1*A[q+1]+a2*B[q+1];o[q+2]=T0[q+2]*(1-a)+a1*A[q+2]+a2*B[q+2];o[q+3]=255}
+ cx.putImageData(out,0,0);rng.value=Math.round(u*100);pct.textContent=u<.01?'A':u>.99?'B':u.toFixed(2)}
+function sync(){$$('.m2-t button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.t));$$('.m2-a button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.a));$$('.m2-b button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.b))}
+const MB=$('.md-badge',root);function badge(a){MB.innerHTML=a?`<span class="dot"></span>${L5(T.auto)}`:`<span>✎ ${L5(T.editm)}</span><button type="button" class="pg-play">▶ ${L5(T.play)}</button>`;MB.classList.toggle('auto',a);const b=$('.pg-play',MB);b&&(b.onclick=()=>{touched=false;badge(true);demo()})}
+function user(){if(touched)return;touched=true;clearInterval(tm);badge(false)}
+side.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;user();const p=b.parentElement,k=+b.dataset.k;
+ if(p.classList.contains('m2-t'))st.t=k;else if(p.classList.contains('m2-a'))st.a=k;else if(p.classList.contains('m2-b'))st.b=k;sync();data()});
+rng.oninput=()=>{user();st.u=rng.value/100;render()};cv.addEventListener('pointerdown',user);
+const PAIRS=[[1,5,2],[0,0,4],[2,1,5],[1,3,0],[0,5,2],[2,4,1]];
+function demo(){clearInterval(tm);let k=0,t0=performance.now(),per=5200;const set=()=>{const [t,a,b]=PAIRS[k%PAIRS.length];st.t=t;st.a=a;st.b=b;sync();data()};set();
+ tm=setInterval(()=>{if(touched){clearInterval(tm);return}const e=(performance.now()-t0)/per;if(e>=1){t0=performance.now();k++;st.u=0;set();return}
+  const x=Math.min(1,Math.max(0,(e<.5?e:1-e)*2.6-.15));st.u=x*x*(3-2*x);render()},50)}
+sync();data();badge(true);
+const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,AM=document.getElementById('ap-modal'),TL=document.querySelector('[data-open="morph2"]');
+TL&&TL.addEventListener('click',()=>{if(RM)return;touched=false;badge(true);demo()});AM&&AM.addEventListener('close',()=>clearInterval(tm))})();
 
 (()=>{const g=document.querySelector('.ap-grid');if(!g)return;const M=document.getElementById('ap-modal'),B=M.querySelector('.ap-body'),H=document.getElementById('ap-hold');let cur=null;
 const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting){if(!v.src&&v.dataset.src)v.src=v.dataset.src;v.play().catch(()=>{})}else v.pause()}),{rootMargin:'200px'});
