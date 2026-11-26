@@ -784,6 +784,8 @@ sync();data();badge(true);
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches,AM=document.getElementById('ap-modal'),TL=document.querySelector('[data-open="morph2"]');
 TL&&TL.addEventListener('click',()=>{if(RM)return;touched=false;badge(true);demo()});AM&&AM.addEventListener('close',()=>clearInterval(tm))})();
 
+/* occluder pop-up: the clip plays while the pop-up is open */
+(()=>{const v=document.querySelector('#glasses .occ-play'),t=document.querySelector('[data-open="glasses"]'),m=document.getElementById('ap-modal');if(!v||!t)return;t.addEventListener('click',()=>{v.currentTime=0;v.play().catch(()=>{})});m&&m.addEventListener('close',()=>v.pause())})();
 (()=>{const g=document.querySelector('.ap-grid');if(!g)return;const M=document.getElementById('ap-modal'),B=M.querySelector('.ap-body'),H=document.getElementById('ap-hold');let cur=null;
 const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting){if(!v.src&&v.dataset.src)v.src=v.dataset.src;v.play().catch(()=>{})}else v.pause()}),{rootMargin:'200px'});
 g.querySelectorAll('video.lazy').forEach(v=>io.observe(v));
