@@ -655,6 +655,64 @@ window.dzTour=()=>new Promise(res=>{if(matchMedia('(prefers-reduced-motion:reduc
 window.dzApi={mode,show:k=>show(k),t:setT,s:setS,stop:()=>{touched=true;clear();badge(false)}};
 badge(true);show(0)})();
 
+/* editing a rendered real photograph: the layer recovered from one render, split into eyes / lips / face paint, edited in closed form
+   (strength, parts, lip tint, face-paint hue of saturated warm pixels); same arithmetic as make_web_realedit.py */
+(()=>{const root=$('#realedit');if(!root)return;const RD=V+'realedit/',N=720,EM=u=>(window.__EMB&&window.__EMB[u])||u;
+const L5=o=>`<span class="en">${o.en}</span><span class="sc">${o.sc}</span><span class="zh">${o.zh}</span><span class="ja">${o.ja}</span><span class="ko">${o.ko}</span>`;
+const T={view:{en:'View',sc:'视图',zh:'檢視',ja:'表示',ko:'보기'},photo:{en:'Original photo',sc:'原始照片',zh:'原始照片',ja:'元の写真',ko:'원본 사진'},
+ bare:{en:'Bare face',sc:'素颜',zh:'素顏',ja:'すっぴん',ko:'민낯'},edit:{en:'Edited',sc:'编辑结果',zh:'編輯結果',ja:'編集結果',ko:'편집 결과'},
+ str:{en:'Strength',sc:'强度',zh:'強度',ja:'強さ',ko:'강도'},parts:{en:'Parts',sc:'部位',zh:'部位',ja:'部位',ko:'부위'},
+ eyes:{en:'Eyes',sc:'眼妆',zh:'眼妝',ja:'アイ',ko:'아이'},lips:{en:'Lips',sc:'唇妆',zh:'唇妝',ja:'リップ',ko:'립'},paint:{en:'Face paint',sc:'彩绘',zh:'彩繪',ja:'フェイスペイント',ko:'페이스 페인팅'},
+ lipc:{en:'Lip color',sc:'唇色',zh:'唇色',ja:'リップの色',ko:'립 색상'},hue:{en:'Face paint color',sc:'彩绘颜色',zh:'彩繪顏色',ja:'ペイントの色',ko:'페인팅 색상'},
+ orig:{en:'Original',sc:'原色',zh:'原色',ja:'元の色',ko:'원래 색'},mir:{en:'Mirror the face paint',sc:'彩绘左右翻转',zh:'彩繪左右翻轉',ja:'ペイントを左右反転',ko:'페인팅 좌우 반전'},
+ off:{en:'Off',sc:'关',zh:'關',ja:'オフ',ko:'끔'},on:{en:'On',sc:'开',zh:'開',ja:'オン',ko:'켬'},
+ hint:{en:'Each change recomposes the cached layer in the browser; nothing is rendered again.',sc:'每次调整都只是在浏览器中重新组合缓存的图层，不会重新渲染。',zh:'每次調整都只是在瀏覽器中重新組合快取的圖層，不會重新渲染。',ja:'変更のたびにキャッシュしたレイヤーをブラウザ上で組み直すだけで、再レンダリングはしません。',ko:'변경할 때마다 브라우저에서 캐시된 레이어를 다시 조합할 뿐이며 다시 렌더링하지 않습니다.'},
+ auto:{en:'Auto demo · click to edit',sc:'自动演示中 · 点击即可编辑',zh:'自動示範中 · 點一下即可編輯',ja:'自動デモ中 · クリックで編集',ko:'자동 데모 중 · 클릭하면 편집'},
+ editm:{en:'Edit mode · paused',sc:'编辑模式 · 已暂停',zh:'編輯模式 · 已暫停',ja:'編集モード · 一時停止中',ko:'편집 모드 · 일시정지됨'},play:{en:'Play',sc:'播放',zh:'播放',ja:'再生',ko:'재생'}};
+const LIPS=[['red',[.78,.10,.16]],['berry',[.55,.10,.32]],['coral',[.92,.38,.30]]],HUES=[['rose',-45,'#c4457c'],['violet',-80,'#8b52c8'],['gold',35,'#c9a33b'],['blue',-150,'#4065cc']];
+const cv=$('canvas',root),cx=cv.getContext('2d');cv.width=cv.height=N;
+let st={view:'edit',s:1,parts:[1,1,1],lip:-1,hue:-1,mir:0},S,P,E,Lp,Pt,PH,PS,PV,PW,axis=.6,touched=false,tm=null,ready=false;
+const side=$('.md-side',root);
+side.innerHTML=`<div class="re-row"><b>${L5(T.view)}</b><div class="seg re-view">${['photo','bare','edit'].map(v=>`<button type="button" data-v="${v}" aria-pressed="${v==='edit'}">${L5(T[v])}</button>`).join('')}</div></div>
+<label class="re-row re-s"><b>${L5(T.str)}</b><input type="range" min="0" max="100" value="100" aria-label="strength"><i>100%</i></label>
+<div class="re-row"><b>${L5(T.parts)}</b><div class="seg re-parts">${['eyes','lips','paint'].map((p,k)=>`<button type="button" data-k="${k}" aria-pressed="true">${L5(T[p])}</button>`).join('')}</div></div>
+<div class="re-row"><b>${L5(T.lipc)}</b><div class="re-sw re-lip"><button type="button" class="re-orig" data-k="-1" aria-pressed="true">${L5(T.orig)}</button>${LIPS.map(([n,c],k)=>`<button type="button" data-k="${k}" aria-pressed="false" aria-label="${n}" style="background:rgb(${c.map(x=>x*255|0)})"></button>`).join('')}</div></div>
+<div class="re-row"><b>${L5(T.hue)}</b><div class="re-sw re-hue"><button type="button" class="re-orig" data-k="-1" aria-pressed="true">${L5(T.orig)}</button>${HUES.map(([n,d,c],k)=>`<button type="button" data-k="${k}" aria-pressed="false" aria-label="${n}" style="background:${c}"></button>`).join('')}</div></div>
+<p class="zn-hint">${L5(T.hint)}</p>`;
+const rng=$('input',side),pct=$('.re-s i',side);
+function sync(){$$('.re-view button',side).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===st.view));rng.value=st.s*100;pct.textContent=Math.round(st.s*100)+'%';
+ $$('.re-parts button',side).forEach(b=>b.setAttribute('aria-pressed',!!st.parts[+b.dataset.k]));$$('.re-lip button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.lip));
+ $$('.re-hue button',side).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===st.hue))}
+function hsv2rgb(h,s,v){h=((h%1)+1)%1*6;const i=Math.floor(h),f=h-i,p=v*(1-s),q=v*(1-s*f),t=v*(1-s*(1-f));return [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6]}
+function prep(){const n=N*N;PH=new Float32Array(n);PS=new Float32Array(n);PV=new Float32Array(n);PW=new Float32Array(n);
+ for(let i=0,q=0;i<n;i++,q+=4){if(!Pt[q+3])continue;const r=Pt[q]/255,g=Pt[q+1]/255,b=Pt[q+2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
+  if(d>0){h=mx===r?((g-b)/d+6)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h/=6}const s=mx?d/mx:0,hd=h*360,warm=hd>=200&&hd<320?0:Math.min(1,Math.max(0,(75-Math.min(hd,360-hd))/20));
+  PH[i]=h;PS[i]=s;PV[i]=mx;PW[i]=Math.min(1,Math.max(0,(s-.25)/.15))*warm}}
+function render(){if(!ready)return;if(st.view!=='edit'){const A=st.view==='photo'?P:S,o=cx.createImageData(N,N);o.data.set(A);cx.putImageData(o,0,0);return}
+ const out=cx.createImageData(N,N),o=out.data,s=st.s,lc=st.lip>=0?LIPS[st.lip][1]:null,hd=st.hue>=0?HUES[st.hue][1]/360:0,ax=Math.round(2*axis*N);
+ for(let y=0,q=0;y<N;y++)for(let x=0;x<N;x++,q+=4){let r=S[q],g=S[q+1],b=S[q+2];
+  if(st.parts[0]){const a=E[q+3]/255*s;r=a*E[q]+(1-a)*r;g=a*E[q+1]+(1-a)*g;b=a*E[q+2]+(1-a)*b}
+  if(st.parts[1]){const a=Lp[q+3]/255*s;let R=Lp[q],G=Lp[q+1],B=Lp[q+2];if(lc){R=.35*R+.65*lc[0]*255;G=.35*G+.65*lc[1]*255;B=.35*B+.65*lc[2]*255}r=a*R+(1-a)*r;g=a*G+(1-a)*g;b=a*B+(1-a)*b}
+  if(st.parts[2]){const xs=st.mir?ax-x:x;if(xs>=0&&xs<N){const j=y*N+xs,p=j*4,a=Pt[p+3]/255*s;if(a>0){let R=Pt[p],G=Pt[p+1],B=Pt[p+2];
+   if(hd&&PW[j]>0){const c=hsv2rgb(PH[j]+hd,PS[j],PV[j]),w=PW[j];R=R*(1-w)+c[0]*255*w;G=G*(1-w)+c[1]*255*w;B=B*(1-w)+c[2]*255*w}r=a*R+(1-a)*r;g=a*G+(1-a)*g;b=a*B+(1-a)*b}}}
+  o[q]=r;o[q+1]=g;o[q+2]=b;o[q+3]=255}
+ cx.putImageData(out,0,0)}
+let raf=0;const req=()=>{sync();if(raf)return;raf=setTimeout(()=>{raf=0;render()},16)};
+const MB=$('.md-badge',root);function badge(a){MB.innerHTML=a?`<span class="dot"></span>${L5(T.auto)}`:`<span>✎ ${L5(T.editm)}</span><button type="button" class="pg-play">▶ ${L5(T.play)}</button>`;MB.classList.toggle('auto',a);const b=$('.pg-play',MB);b&&(b.onclick=()=>{touched=false;badge(true);demo()})}
+function user(){if(touched)return;touched=true;clearInterval(tm);badge(false)}
+side.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;user();const p=b.parentElement;
+ if(p.classList.contains('re-view'))st.view=b.dataset.v;else if(p.classList.contains('re-parts')){const k=+b.dataset.k;st.parts[k]=st.parts[k]?0:1;st.view='edit'}
+ else if(p.classList.contains('re-lip')){st.lip=+b.dataset.k;st.view='edit'}else if(p.classList.contains('re-hue')){st.hue=+b.dataset.k;st.view='edit'}req()});
+rng.oninput=()=>{user();st.s=rng.value/100;st.view='edit';req()};cv.addEventListener('pointerdown',user);
+const D0=()=>({view:'edit',s:1,parts:[1,1,1],lip:-1,hue:-1,mir:0});
+const SEQ=[{view:'photo'},{view:'bare'},{s:.35},{s:.7},{},{parts:[0,1,1]},{parts:[1,0,1]},{parts:[1,1,0]},{},{lip:0},{lip:1},{lip:2},{},{hue:0},{hue:1},{hue:2},{hue:3},{}];
+function demo(){clearInterval(tm);let k=0;const step=()=>{if(touched){clearInterval(tm);return}st=Object.assign(D0(),SEQ[k%SEQ.length]);k++;req()};step();tm=setInterval(step,1500)}
+const load=u=>new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.drawImage(i,0,0,N,N);r(x.getImageData(0,0,N,N).data)};i.src=EM(u)});
+const start=()=>Promise.all(['src','photo','eyes','lips','paint'].map(n=>load(RD+n+'.webp'))).then(([s,p,e,l,t])=>{S=s;P=p;E=e;Lp=l;Pt=t;prep();ready=true;sync();render();badge(true);
+ if(!matchMedia('(prefers-reduced-motion:reduce)').matches){let go=false;new IntersectionObserver(es=>{if(es[0].isIntersecting&&!go){go=true;demo()}},{threshold:.3}).observe(root)}});
+if(window.__EMB&&window.__EMB[RD+'meta.json']){try{axis=JSON.parse(atob(window.__EMB[RD+'meta.json'].split(',')[1])).axis}catch(e){}start()}
+else fetch(RD+'meta.json').then(r=>r.json()).then(m=>{axis=m.axis}).catch(()=>{}).finally(start)})();
+
 (()=>{const g=document.querySelector('.ap-grid');if(!g)return;const M=document.getElementById('ap-modal'),B=M.querySelector('.ap-body'),H=document.getElementById('ap-hold');let cur=null;
 const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target;if(e.isIntersecting){if(!v.src&&v.dataset.src)v.src=v.dataset.src;v.play().catch(()=>{})}else v.pause()}),{rootMargin:'200px'});
 g.querySelectorAll('video.lazy').forEach(v=>io.observe(v));
