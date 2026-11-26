@@ -1,0 +1,242 @@
+{
+ "sources": [
+  {
+   "id": "studio",
+   "name": "Studio",
+   "file": "source-studio.webp"
+  },
+  {
+   "id": "smile",
+   "name": "Smile",
+   "file": "source-smile.webp"
+  },
+  {
+   "id": "warm",
+   "name": "Warm light",
+   "file": "source-warm.webp"
+  },
+  {
+   "id": "night",
+   "name": "Night",
+   "file": "source-night.webp"
+  },
+  {
+   "id": "ds_002246",
+   "name": "Evening",
+   "file": "source-ds_002246.webp",
+   "origin": "LayerBeauty daily_scene/test (bare face)"
+  },
+  {
+   "id": "cs_010066",
+   "name": "Runway",
+   "file": "source-cs_010066.webp",
+   "origin": "LayerBeauty creative_scene/unseen_style (bare face)"
+  },
+  {
+   "id": "cs_003319",
+   "name": "Studio grey",
+   "file": "source-cs_003319.webp",
+   "origin": "LayerBeauty creative_scene/val (bare face)"
+  },
+  {
+   "id": "cs_002812",
+   "name": "Sandstone",
+   "file": "source-cs_002812.webp",
+   "origin": "LayerBeauty creative_scene/test (bare face)"
+  },
+  {
+   "id": "cs_006519",
+   "name": "Sunlit",
+   "file": "source-cs_006519.webp",
+   "origin": "LayerBeauty creative_scene/test (bare face)"
+  },
+  {
+   "id": "cs_013166",
+   "name": "Copper",
+   "file": "source-cs_013166.webp",
+   "origin": "LayerBeauty creative_scene/val (bare face)"
+  },
+  {
+   "id": "cs_007040",
+   "name": "Clean white",
+   "file": "source-cs_007040.webp",
+   "origin": "LayerBeauty creative_scene/test (bare face)"
+  },
+  {
+   "id": "cs_002228",
+   "name": "Red hood",
+   "file": "source-cs_002228.webp",
+   "origin": "LayerBeauty creative_scene/val (bare face)"
+  },
+  {
+   "id": "cs_004598",
+   "name": "Laundromat",
+   "file": "source-cs_004598.webp",
+   "origin": "LayerBeauty creative_scene/test (bare face)"
+  },
+  {
+   "id": "cs_004981",
+   "name": "Spotlight",
+   "file": "source-cs_004981.webp",
+   "origin": "LayerBeauty creative_scene/val (bare face)"
+  },
+  {
+   "id": "cs_000565",
+   "name": "Mist",
+   "file": "source-cs_000565.webp",
+   "origin": "LayerBeauty creative_scene/val (bare face)"
+  }
+ ],
+ "references": [
+  {
+   "id": "satin",
+   "name": "Soft satin",
+   "file": "reference-satin.webp"
+  },
+  {
+   "id": "merlot",
+   "name": "Merlot",
+   "file": "reference-merlot.webp"
+  },
+  {
+   "id": "poppy",
+   "name": "Poppy red",
+   "file": "reference-poppy.webp"
+  },
+  {
+   "id": "red",
+   "name": "Red & white paint",
+   "file": "reference-red.webp"
+  },
+  {
+   "id": "mint",
+   "name": "Mint eyes",
+   "file": "reference-mint.webp"
+  },
+  {
+   "id": "cobalt",
+   "name": "Cobalt eyes",
+   "file": "reference-cobalt.webp"
+  },
+  {
+   "id": "lily",
+   "name": "Water lily",
+   "file": "reference-lily.webp"
+  },
+  {
+   "id": "cs_002029",
+   "name": "Desert gold",
+   "file": "reference-cs_002029.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_011348",
+   "name": "Silver pastel",
+   "file": "reference-cs_011348.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_003573",
+   "name": "Lilac",
+   "file": "reference-cs_003573.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_005287",
+   "name": "Ruby smoky",
+   "file": "reference-cs_005287.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_001345",
+   "name": "Cherry blossom",
+   "file": "reference-cs_001345.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_010076",
+   "name": "Pastel teal",
+   "file": "reference-cs_010076.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_008371",
+   "name": "Daily soft",
+   "file": "reference-cs_008371.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_013066",
+   "name": "Daily rosy",
+   "file": "reference-cs_013066.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_004598",
+   "name": "Elemental",
+   "file": "reference-cs_004598.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_001662",
+   "name": "Blue liner",
+   "file": "reference-cs_001662.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_007568",
+   "name": "Mint swirl",
+   "file": "reference-cs_007568.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_007596",
+   "name": "Pink bloom",
+   "file": "reference-cs_007596.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_008469",
+   "name": "Desert rose",
+   "file": "reference-cs_008469.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_001756",
+   "name": "Violet smoky",
+   "file": "reference-cs_001756.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_007397",
+   "name": "Rose painting",
+   "file": "reference-cs_007397.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_005110",
+   "name": "Garnet",
+   "file": "reference-cs_005110.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_006359",
+   "name": "Editorial blush",
+   "file": "reference-cs_006359.webp",
+   "origin": "LayerBeauty creative_scene/test"
+  },
+  {
+   "id": "cs_001975",
+   "name": "Sunflower",
+   "file": "reference-cs_001975.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  },
+  {
+   "id": "cs_000570",
+   "name": "Ice liner",
+   "file": "reference-cs_000570.webp",
+   "origin": "LayerBeauty creative_scene/val"
+  }
+ ],
+ "note": "Example photos from LayerBeauty (CC BY-NC 4.0, synthetic people). Sources are bare faces, references made-up faces."
+}

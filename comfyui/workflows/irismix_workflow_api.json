@@ -1,0 +1,230 @@
+{
+ "1": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "source-warm.webp"
+  },
+  "_meta": {
+   "title": "Target photo"
+  }
+ },
+ "2": {
+  "class_type": "IrisMixDecompose",
+  "inputs": {
+   "photo": [
+    "1",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Remove target makeup"
+  }
+ },
+ "3": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "2",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Bare face"
+  }
+ },
+ "4": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "reference-cobalt.webp"
+  },
+  "_meta": {
+   "title": "Eyes reference"
+  }
+ },
+ "5": {
+  "class_type": "IrisMixDecompose",
+  "inputs": {
+   "photo": [
+    "4",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Decompose reference"
+  }
+ },
+ "6": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "5",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Makeup layer"
+  }
+ },
+ "7": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "reference-merlot.webp"
+  },
+  "_meta": {
+   "title": "Lips reference"
+  }
+ },
+ "8": {
+  "class_type": "IrisMixDecompose",
+  "inputs": {
+   "photo": [
+    "7",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Decompose reference"
+  }
+ },
+ "9": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "8",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Makeup layer"
+  }
+ },
+ "10": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "reference-poppy.webp"
+  },
+  "_meta": {
+   "title": "Face paint reference"
+  }
+ },
+ "11": {
+  "class_type": "IrisMixDecompose",
+  "inputs": {
+   "photo": [
+    "10",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Decompose reference"
+  }
+ },
+ "12": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "11",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Makeup layer"
+  }
+ },
+ "13": {
+  "class_type": "IrisMixCompose",
+  "inputs": {
+   "target": [
+    "2",
+    0
+   ],
+   "eyes_from": [
+    "5",
+    2
+   ],
+   "lips_from": [
+    "8",
+    2
+   ],
+   "face_from": [
+    "11",
+    2
+   ]
+  },
+  "_meta": {
+   "title": "Compose by part"
+  }
+ },
+ "14": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "13",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Composite (warp only)"
+  }
+ },
+ "15": {
+  "class_type": "IrisMixRender",
+  "inputs": {
+   "seed": 0,
+   "look": [
+    "13",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Render (one step)"
+  }
+ },
+ "16": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "irismix/rendered",
+   "images": [
+    "15",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Rendered"
+  }
+ },
+ "17": {
+  "class_type": "IrisMixEditLayer",
+  "inputs": {
+   "strength": 1.0,
+   "eyes": true,
+   "lips": true,
+   "face": true,
+   "forehead": true,
+   "lip_color": "#b0303a",
+   "eyes_hue": 0,
+   "face_hue": -120,
+   "forehead_hue": 0,
+   "result": [
+    "15",
+    1
+   ]
+  },
+  "_meta": {
+   "title": "Edit layer (no new render)"
+  }
+ },
+ "18": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "irismix/edited",
+   "images": [
+    "17",
+    0
+   ]
+  },
+  "_meta": {
+   "title": "Edited"
+  }
+ }
+}

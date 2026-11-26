@@ -1,0 +1,573 @@
+{
+ "note": "Generic shade library for the viewer (no brands): 24 foundations (8 depths x cool / neutral / warm), lipsticks and blushes. CIELAB or hex under D65.",
+ "shades": [
+  {
+   "id": "F10C",
+   "category": "foundation",
+   "name_en": "Fair Cool",
+   "depth": "fair",
+   "undertone": "cool",
+   "lab": [
+    80,
+    9.0,
+    9.4
+   ],
+   "hex": "#DEC0B5",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F10N",
+   "category": "foundation",
+   "name_en": "Fair Neutral",
+   "depth": "fair",
+   "undertone": "neutral",
+   "lab": [
+    80,
+    7.6,
+    10.5
+   ],
+   "hex": "#DDC1B3",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F10W",
+   "category": "foundation",
+   "name_en": "Fair Warm",
+   "depth": "fair",
+   "undertone": "warm",
+   "lab": [
+    80,
+    6.1,
+    11.5
+   ],
+   "hex": "#DBC2B1",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F20C",
+   "category": "foundation",
+   "name_en": "Light Cool",
+   "depth": "light",
+   "undertone": "cool",
+   "lab": [
+    74,
+    11.1,
+    11.5
+   ],
+   "hex": "#D2AEA1",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F20N",
+   "category": "foundation",
+   "name_en": "Light Neutral",
+   "depth": "light",
+   "undertone": "neutral",
+   "lab": [
+    74,
+    9.4,
+    12.9
+   ],
+   "hex": "#D0AF9F",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F20W",
+   "category": "foundation",
+   "name_en": "Light Warm",
+   "depth": "light",
+   "undertone": "warm",
+   "lab": [
+    74,
+    7.5,
+    14.1
+   ],
+   "hex": "#CEB09D",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F30C",
+   "category": "foundation",
+   "name_en": "Light-medium Cool",
+   "depth": "light-medium",
+   "undertone": "cool",
+   "lab": [
+    68,
+    13.2,
+    13.7
+   ],
+   "hex": "#C69D8E",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F30N",
+   "category": "foundation",
+   "name_en": "Light-medium Neutral",
+   "depth": "light-medium",
+   "undertone": "neutral",
+   "lab": [
+    68,
+    11.2,
+    15.4
+   ],
+   "hex": "#C49E8B",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F30W",
+   "category": "foundation",
+   "name_en": "Light-medium Warm",
+   "depth": "light-medium",
+   "undertone": "warm",
+   "lab": [
+    68,
+    8.9,
+    16.8
+   ],
+   "hex": "#C19F88",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F40C",
+   "category": "foundation",
+   "name_en": "Medium Cool",
+   "depth": "medium",
+   "undertone": "cool",
+   "lab": [
+    62,
+    14.6,
+    15.1
+   ],
+   "hex": "#B88C7C",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F40N",
+   "category": "foundation",
+   "name_en": "Medium Neutral",
+   "depth": "medium",
+   "undertone": "neutral",
+   "lab": [
+    62,
+    12.3,
+    17.0
+   ],
+   "hex": "#B68D78",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F40W",
+   "category": "foundation",
+   "name_en": "Medium Warm",
+   "depth": "medium",
+   "undertone": "warm",
+   "lab": [
+    62,
+    9.9,
+    18.5
+   ],
+   "hex": "#B38F76",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F50C",
+   "category": "foundation",
+   "name_en": "Medium-tan Cool",
+   "depth": "medium-tan",
+   "undertone": "cool",
+   "lab": [
+    55,
+    16.0,
+    16.5
+   ],
+   "hex": "#A87968",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F50N",
+   "category": "foundation",
+   "name_en": "Medium-tan Neutral",
+   "depth": "medium-tan",
+   "undertone": "neutral",
+   "lab": [
+    55,
+    13.5,
+    18.6
+   ],
+   "hex": "#A57A64",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F50W",
+   "category": "foundation",
+   "name_en": "Medium-tan Warm",
+   "depth": "medium-tan",
+   "undertone": "warm",
+   "lab": [
+    55,
+    10.8,
+    20.3
+   ],
+   "hex": "#A27C61",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F60C",
+   "category": "foundation",
+   "name_en": "Tan Cool",
+   "depth": "tan",
+   "undertone": "cool",
+   "lab": [
+    47,
+    16.7,
+    17.3
+   ],
+   "hex": "#936453",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F60N",
+   "category": "foundation",
+   "name_en": "Tan Neutral",
+   "depth": "tan",
+   "undertone": "neutral",
+   "lab": [
+    47,
+    14.1,
+    19.4
+   ],
+   "hex": "#906650",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F60W",
+   "category": "foundation",
+   "name_en": "Tan Warm",
+   "depth": "tan",
+   "undertone": "warm",
+   "lab": [
+    47,
+    11.3,
+    21.2
+   ],
+   "hex": "#8D684C",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F70C",
+   "category": "foundation",
+   "name_en": "Deep Cool",
+   "depth": "deep",
+   "undertone": "cool",
+   "lab": [
+    38,
+    15.3,
+    15.8
+   ],
+   "hex": "#795041",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F70N",
+   "category": "foundation",
+   "name_en": "Deep Neutral",
+   "depth": "deep",
+   "undertone": "neutral",
+   "lab": [
+    38,
+    12.9,
+    17.8
+   ],
+   "hex": "#76513D",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F70W",
+   "category": "foundation",
+   "name_en": "Deep Warm",
+   "depth": "deep",
+   "undertone": "warm",
+   "lab": [
+    38,
+    10.3,
+    19.4
+   ],
+   "hex": "#73533B",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F80C",
+   "category": "foundation",
+   "name_en": "Rich Cool",
+   "depth": "rich",
+   "undertone": "cool",
+   "lab": [
+    30,
+    12.5,
+    12.9
+   ],
+   "hex": "#5F3F33",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F80N",
+   "category": "foundation",
+   "name_en": "Rich Neutral",
+   "depth": "rich",
+   "undertone": "neutral",
+   "lab": [
+    30,
+    10.6,
+    14.6
+   ],
+   "hex": "#5D4030",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "F80W",
+   "category": "foundation",
+   "name_en": "Rich Warm",
+   "depth": "rich",
+   "undertone": "warm",
+   "lab": [
+    30,
+    8.5,
+    15.9
+   ],
+   "hex": "#5B412E",
+   "finish": "satin",
+   "strength": 0.6
+  },
+  {
+   "id": "L01",
+   "category": "lipstick",
+   "name_en": "Nude Beige",
+   "hex": "#C08A77",
+   "lab": [
+    62.2,
+    18.0,
+    18.5
+   ],
+   "finish": "satin",
+   "strength": 0.75
+  },
+  {
+   "id": "L02",
+   "category": "lipstick",
+   "name_en": "Rosy Nude",
+   "hex": "#B86F72",
+   "lab": [
+    54.7,
+    29.4,
+    10.8
+   ],
+   "finish": "satin",
+   "strength": 0.75
+  },
+  {
+   "id": "L03",
+   "category": "lipstick",
+   "name_en": "Mauve Rose",
+   "hex": "#A8636B",
+   "lab": [
+    49.8,
+    28.9,
+    7.7
+   ],
+   "finish": "satin",
+   "strength": 0.8
+  },
+  {
+   "id": "L04",
+   "category": "lipstick",
+   "name_en": "Peach Pink",
+   "hex": "#E58C86",
+   "lab": [
+    67.3,
+    33.0,
+    17.6
+   ],
+   "finish": "sheer",
+   "strength": 0.55
+  },
+  {
+   "id": "L05",
+   "category": "lipstick",
+   "name_en": "Coral",
+   "hex": "#E0675A",
+   "lab": [
+    58.2,
+    46.2,
+    30.2
+   ],
+   "finish": "satin",
+   "strength": 0.8
+  },
+  {
+   "id": "L06",
+   "category": "lipstick",
+   "name_en": "Rose Pink",
+   "hex": "#D45C7E",
+   "lab": [
+    55.1,
+    50.5,
+    4.7
+   ],
+   "finish": "gloss",
+   "strength": 0.7
+  },
+  {
+   "id": "L07",
+   "category": "lipstick",
+   "name_en": "Classic Red",
+   "hex": "#B5172A",
+   "lab": [
+    38.9,
+    59.6,
+    33.0
+   ],
+   "finish": "matte",
+   "strength": 0.9
+  },
+  {
+   "id": "L08",
+   "category": "lipstick",
+   "name_en": "Brick Red",
+   "hex": "#9E3B2C",
+   "lab": [
+    38.8,
+    40.3,
+    30.6
+   ],
+   "finish": "matte",
+   "strength": 0.9
+  },
+  {
+   "id": "L09",
+   "category": "lipstick",
+   "name_en": "Caramel Brown",
+   "hex": "#8A4B3A",
+   "lab": [
+    39.1,
+    25.0,
+    21.9
+   ],
+   "finish": "satin",
+   "strength": 0.85
+  },
+  {
+   "id": "L10",
+   "category": "lipstick",
+   "name_en": "Berry",
+   "hex": "#8E2A4A",
+   "lab": [
+    33.8,
+    44.5,
+    4.7
+   ],
+   "finish": "satin",
+   "strength": 0.85
+  },
+  {
+   "id": "L11",
+   "category": "lipstick",
+   "name_en": "Plum",
+   "hex": "#6B2A44",
+   "lab": [
+    27.2,
+    31.8,
+    -1.6
+   ],
+   "finish": "matte",
+   "strength": 0.9
+  },
+  {
+   "id": "B01",
+   "category": "blush",
+   "name_en": "Peach",
+   "hex": "#F2A07B",
+   "lab": [
+    73.1,
+    26.4,
+    31.9
+   ],
+   "finish": "satin",
+   "strength": 0.45
+  },
+  {
+   "id": "B02",
+   "category": "blush",
+   "name_en": "Rose",
+   "hex": "#E07A8C",
+   "lab": [
+    62.9,
+    41.5,
+    7.9
+   ],
+   "finish": "satin",
+   "strength": 0.45
+  },
+  {
+   "id": "B03",
+   "category": "blush",
+   "name_en": "Coral",
+   "hex": "#F07C6A",
+   "lab": [
+    64.8,
+    43.0,
+    30.3
+   ],
+   "finish": "satin",
+   "strength": 0.45
+  },
+  {
+   "id": "B04",
+   "category": "blush",
+   "name_en": "Berry",
+   "hex": "#B5536E",
+   "lab": [
+    48.3,
+    42.5,
+    4.1
+   ],
+   "finish": "matte",
+   "strength": 0.4
+  },
+  {
+   "id": "B05",
+   "category": "blush",
+   "name_en": "Warm Bronze",
+   "hex": "#C07A55",
+   "lab": [
+    57.7,
+    23.6,
+    31.5
+   ],
+   "finish": "matte",
+   "strength": 0.4
+  }
+ ]
+}

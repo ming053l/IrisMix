@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IrisMix Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2213%22 fill=%22%23E2808F%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%225%22 fill=%22%23FCE9EC%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root {
+  --bg: #f7f2f0; --card: #ffffff; --line: #efe5e2; --line2: #e6d9d5; --ink: #2b2326; --sub: #8b7d81; --faint: #b8abaf;
+  --rose: #e2808f; --rose-d: #c9606f; --blush: #fcebee; --blush2: #f8dde2; --sand: #f4ede9; --mint: #8cc7b5;
+  --r: 16px; --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+  "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --shadow: 0 1px 2px rgba(120, 70, 80, .04), 0 8px 24px rgba(120, 70, 80, .06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.5 var(--font); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+body { display: grid; grid-template-rows: 58px 1fr; overflow: hidden; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: #e5d7d3; border-radius: 8px; } ::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- header */
+header { display: flex; align-items: center; gap: 14px; padding: 0 22px; background: rgba(255,255,255,.75); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo i { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, var(--blush) 0 28%, var(--rose) 30% 100%); box-shadow: 0 2px 8px rgba(226,128,143,.35); }
+.logo b { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+.logo span { font-size: 12px; color: var(--sub); font-weight: 500; padding: 3px 10px; background: var(--blush); border-radius: 99px; color: var(--rose-d); }
+header .sp { flex: 1; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); background: var(--sand); padding: 5px 12px; border-radius: 99px; }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+.chip.busy .dot { background: var(--rose); animation: pulse 1s infinite; }
+.chip.err .dot { background: #d65a5a; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+/* ---------- layout */
+#app { display: grid; grid-template-columns: 340px 1fr 340px; min-height: 0; }
+.col { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+.card h3 { margin: 0 0 12px; font-size: 14px; font-weight: 650; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.card h3 small { font-weight: 450; font-size: 11.5px; color: var(--sub); }
+.muted { color: var(--sub); font-size: 12px; }
+
+/* slots */
+.slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.slot { position: relative; aspect-ratio: 1; border: 1.5px dashed var(--line2); border-radius: 14px; background: var(--sand); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.slot.big { grid-column: span 2; aspect-ratio: 4 / 3; }
+.slot:hover { border-color: #d9c3bf; }
+.slot.sel { border: 1.5px solid var(--rose); box-shadow: 0 0 0 4px var(--blush); }
+.slot.drag { border-color: var(--rose); background: var(--blush); }
+.slot img { width: 100%; height: 100%; object-fit: cover; }
+.slot .lbl { position: absolute; left: 8px; top: 8px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.88); color: var(--ink); }
+.slot .hint { color: var(--sub); font-size: 12px; text-align: center; padding: 0 10px; }
+.slot .x { position: absolute; right: 7px; top: 7px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(255,255,255,.9); color: var(--sub);
+  cursor: pointer; display: none; line-height: 22px; padding: 0; font-size: 14px; }
+.slot.has .x { display: block; }
+.slot .up { position: absolute; right: 8px; bottom: 8px; border: 0; background: rgba(255,255,255,.92); color: var(--rose-d); font-size: 11px; font-weight: 650;
+  padding: 4px 10px; border-radius: 99px; cursor: pointer; box-shadow: 0 1px 4px rgba(120,70,80,.15); }
+.slot .up:hover { background: var(--rose); color: #fff; }
+.uprow { display: flex; gap: 8px; margin-top: 10px; }
+
+/* segmented, pills, buttons */
+.seg { display: flex; background: var(--sand); border-radius: 12px; padding: 3px; gap: 2px; margin-bottom: 12px; }
+.seg button { flex: 1; border: 0; background: none; padding: 7px 4px; border-radius: 9px; cursor: pointer; color: var(--sub); font-weight: 550; font-size: 12px; white-space: nowrap; }
+.seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(120,70,80,.12); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { border: 1px solid var(--line2); background: #fff; padding: 4px 11px; border-radius: 99px; cursor: pointer; font-size: 12px; color: var(--sub); }
+.pill.on { background: var(--blush); border-color: var(--rose); color: var(--rose-d); font-weight: 600; }
+.row { display: flex; gap: 8px; align-items: center; }
+.btn { flex: 1; border: 1px solid var(--line2); background: #fff; padding: 10px 12px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: .15s; }
+.btn:hover:not(:disabled) { border-color: #d9c3bf; background: #fffafa; }
+.btn.primary { background: var(--rose); border-color: var(--rose); color: #fff; box-shadow: 0 6px 16px rgba(226,128,143,.35); }
+.btn.primary:hover:not(:disabled) { background: var(--rose-d); border-color: var(--rose-d); }
+.btn.soft { background: var(--blush); border-color: var(--blush2); color: var(--rose-d); }
+.btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+.btn.sm { padding: 6px 10px; font-size: 12px; border-radius: 10px; flex: 0 0 auto; }
+#progress { margin-top: 10px; font-size: 12px; color: var(--sub); min-height: 18px; display: flex; align-items: center; gap: 8px; }
+#progress.err { color: #c64a4a; }
+.spin { width: 13px; height: 13px; border: 2px solid var(--blush2); border-top-color: var(--rose); border-radius: 50%; animation: s .8s linear infinite; display: none; flex: 0 0 auto; }
+.busy .spin { display: inline-block; }
+@keyframes s { to { transform: rotate(360deg); } }
+#log { font-family: var(--mono); font-size: 10.5px; color: var(--faint); max-height: 92px; overflow: auto; white-space: pre; margin-top: 6px; }
+
+/* gallery */
+#gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 2px; }
+#gallery .g { position: relative; cursor: pointer; border-radius: 10px; overflow: hidden; aspect-ratio: 1; background: var(--sand); }
+#gallery .g img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
+#gallery .g:hover img { transform: scale(1.06); }
+#gallery .g span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9.5px; color: #fff; padding: 10px 5px 3px; background: linear-gradient(transparent, rgba(40,20,25,.55));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s; }
+#gallery .g:hover span { opacity: 1; }
+
+/* controls */
+.ctl { display: grid; grid-template-columns: 70px 1fr 42px; align-items: center; gap: 8px; margin: 5px 0; }
+.ctl label { color: var(--sub); font-size: 12px; }
+.ctl output { font-family: var(--mono); font-size: 11px; color: var(--sub); text-align: right; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: linear-gradient(90deg, var(--rose) var(--p, 50%), var(--line2) var(--p, 50%)); border-radius: 4px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--rose); cursor: pointer; box-shadow: 0 1px 4px rgba(120,70,80,.2); }
+input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 2px solid var(--rose); cursor: pointer; }
+.sw { position: relative; width: 34px; height: 20px; display: inline-block; flex: 0 0 auto; }
+.sw input { opacity: 0; width: 0; height: 0; }
+.sw span { position: absolute; inset: 0; background: var(--line2); border-radius: 20px; cursor: pointer; transition: .2s; }
+.sw span:before { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.sw input:checked + span { background: var(--rose); }
+.sw input:checked + span:before { transform: translateX(14px); }
+.part { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0; background: #fffdfc; }
+.part .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.part .head b { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.part .head b i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.part.off .body { opacity: .35; pointer-events: none; }
+.rc { display: flex; align-items: center; gap: 8px; margin-top: 4px; color: var(--sub); font-size: 12px; }
+.rc input[type=color] { width: 26px; height: 26px; border: 2px solid #fff; border-radius: 50%; padding: 0; cursor: pointer; box-shadow: 0 0 0 1px var(--line2); background: none; }
+.rc input[type=color]::-webkit-color-swatch-wrapper { padding: 0; } .rc input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.rc .sw { margin-left: auto; }
+.disabled { opacity: .4; pointer-events: none; }
+.tabs { display: flex; gap: 2px; background: var(--sand); padding: 3px; border-radius: 12px; }
+.tabs button { flex: 1 1 auto; border: 0; background: none; padding: 7px 2px; border-radius: 9px; cursor: pointer; color: var(--sub); font-weight: 600; font-size: 11px; letter-spacing: -.02em; }
+.tabs button.on { background: #fff; color: var(--rose-d); box-shadow: 0 1px 4px rgba(120,70,80,.12); }
+.pane { display: none; } .pane.on { display: block; }
+.sec { font-size: 12px; font-weight: 650; margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+.sec small { font-weight: 450; color: var(--sub); }
+
+/* shades */
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swc { position: relative; width: 38px; text-align: center; cursor: pointer; }
+.swc i { display: block; width: 32px; height: 32px; margin: 0 auto; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line2); transition: .15s; }
+.swc.on i { box-shadow: 0 0 0 2px var(--rose); transform: scale(1.06); }
+.swc em { position: absolute; right: -2px; top: -4px; font-style: normal; font-size: 11px; color: var(--rose); }
+.swc span { display: block; font-size: 9.5px; color: var(--sub); margin-top: 3px; line-height: 1.15; }
+.swc.none i { background: repeating-linear-gradient(45deg, #fff 0 4px, var(--sand) 4px 8px); }
+.report { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; background: var(--sand); border-radius: 12px; padding: 10px 12px; }
+.report .k { color: var(--sub); }
+.report i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -2px; margin-right: 4px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+
+/* looks */
+.look { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 14px; padding: 8px; margin: 6px 0; background: #fffdfc; }
+.look img { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; }
+.look .nm { font-weight: 600; font-size: 12.5px; }
+.look .ops { display: flex; flex-direction: column; gap: 3px; }
+.look .ops button { border: 0; background: var(--sand); border-radius: 7px; width: 26px; height: 20px; cursor: pointer; font-size: 11px; color: var(--sub); padding: 0; }
+.look input[type=range] { margin-top: 6px; }
+select { flex: 1; appearance: none; -webkit-appearance: none; border: 1px solid var(--line2); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b7d81' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border-radius: 10px; padding: 6px 26px 6px 10px; font-size: 12px; cursor: pointer; min-width: 0; }
+.steps { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--sub); margin-top: 4px; }
+.steps span.on { color: var(--rose-d); font-weight: 650; }
+
+/* ---------- viewport */
+#main { position: relative; min-width: 0; display: flex; flex-direction: column; padding: 16px 0; }
+#bar { position: absolute; left: 50%; top: 26px; transform: translateX(-50%); z-index: 3; display: flex; gap: 2px; background: rgba(255,255,255,.88); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 99px; padding: 4px; box-shadow: var(--shadow); }
+.tab { border: 0; background: none; color: var(--sub); padding: 6px 13px; border-radius: 99px; cursor: pointer; font-weight: 550; font-size: 12px; white-space: nowrap; }
+.tab.on { background: var(--ink); color: #fff; }
+.tab:disabled { opacity: .35; cursor: default; }
+.tab.tog.on { background: var(--blush); color: var(--rose-d); }
+#view { position: relative; flex: 1; overflow: hidden; cursor: grab; border-radius: 22px; background: #efe8e5;
+  background-image: radial-gradient(rgba(201,96,111,.08) 1px, transparent 1px); background-size: 20px 20px; border: 1px solid var(--line); }
+#view.panning { cursor: grabbing; }
+#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#cv { display: block; border-radius: 6px; box-shadow: 0 20px 50px rgba(90,50,60,.18); }
+#wipe { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #fff; display: none; cursor: ew-resize; }
+#wipe:before { content: attr(data-label); position: absolute; right: 10px; top: 10px; font-size: 11px; font-weight: 600; color: var(--ink); background: rgba(255,255,255,.9); padding: 2px 9px; border-radius: 99px; }
+#wipe:after { content: "↔"; position: absolute; left: -15px; top: 50%; width: 28px; height: 28px; margin-top: -14px; border-radius: 50%; background: #fff; color: var(--rose-d);
+  text-align: center; line-height: 28px; font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+#empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--sub); gap: 6px; pointer-events: none; }
+#empty b { color: var(--ink); font-weight: 650; font-size: 16px; }
+#status { display: flex; gap: 16px; padding: 8px 6px 0; font-size: 11px; color: var(--faint); font-family: var(--mono); }
+#status b { color: var(--sub); font-weight: 500; }
+#status { align-items: center; }
+.mini { border: 1px solid var(--line2); background: #fff; color: var(--sub); font-size: 11px; padding: 2px 10px; border-radius: 99px; cursor: pointer; font-family: var(--font); }
+.mini:hover { border-color: var(--rose); color: var(--rose-d); }
+#zoombox { position: absolute; right: 14px; bottom: 50px; z-index: 3; display: flex; flex-direction: column; gap: 4px; }
+#zoombox button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,.92); cursor: pointer; font-size: 15px; color: var(--sub); box-shadow: var(--shadow); }
+#toast { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 16px; border-radius: 99px; font-size: 12px;
+  opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 80%; z-index: 5; }
+#toast.show { opacity: 1; }
+.exportbar { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding-top: 10px; }
+kbd { font-family: var(--mono); font-size: 10px; border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--sub); background: #fff; }
+/* suggest */
+.reccard { display: grid; grid-template-columns: 64px 1fr; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 8px; margin: 8px 0; background: #fffdfc; cursor: pointer; transition: .15s; position: relative; }
+.reccard:hover { border-color: var(--rose); box-shadow: 0 4px 14px rgba(226,128,143,.15); }
+.reccard img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; }
+.reccard .nm { font-weight: 650; display: flex; justify-content: space-between; align-items: baseline; }
+.reccard .nm b { color: var(--rose-d); font-size: 15px; }
+.reccard .why { font-size: 11px; color: var(--sub); margin-top: 3px; line-height: 1.35; }
+.reccard .bars { display: grid; grid-template-columns: 52px 1fr; gap: 2px 6px; font-size: 10px; color: var(--faint); margin-top: 4px; align-items: center; }
+.reccard .bar { height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; } .reccard .bar i { display: block; height: 100%; background: var(--rose); border-radius: 4px; }
+.reccard .medal { position: absolute; left: -6px; top: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--rose); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(226,128,143,.4); }
+.stylist { background: linear-gradient(135deg, var(--blush), #fff); border: 1px solid var(--blush2); border-radius: 14px; padding: 10px 12px; margin: 8px 0; font-size: 12px; }
+.stylist b { color: var(--rose-d); }
+/* comparison sheet */
+#sheet { position: absolute; inset: 16px 0 34px; z-index: 6; background: rgba(247,242,240,.97); backdrop-filter: blur(6px); border-radius: 22px; border: 1px solid var(--line); display: none; flex-direction: column; overflow: hidden; }
+#sheet.on { display: flex; }
+#sheet .top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 6px; }
+#sheet .top b { font-size: 16px; }
+#sheet .cards { flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 12px; padding: 8px 18px; }
+.scard { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: .15s; }
+.scard:hover { box-shadow: 0 8px 24px rgba(120,70,80,.12); }
+.scard.best { background: var(--blush); border-color: var(--rose); }
+.scard img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.scard .hd { padding: 10px 12px 8px; text-align: center; }
+.scard .hd .t { font-size: 17px; font-weight: 750; letter-spacing: -.02em; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.scard .hd .t i { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.scard .hd .s { font-size: 12px; color: var(--sub); }
+.scard .hd .u { font-size: 11.5px; margin-top: 5px; color: var(--ink); background: rgba(255,255,255,.7); border-radius: 8px; padding: 3px 6px; }
+.scard.best .hd .u { color: var(--rose-d); font-weight: 650; }
+.scard ul { margin: 0; padding: 10px 12px 12px 26px; font-size: 11.5px; color: var(--ink); line-height: 1.45; }
+.crown { color: #e0a93b; font-size: 16px; }
+#sheet .overall { margin: 8px 18px 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; font-size: 12.5px; }
+#sheet .overall b { background: var(--blush); color: var(--rose-d); padding: 6px 12px; border-radius: 10px; white-space: nowrap; }
+header select { border: 1px solid var(--line2); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b7d81' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;
+  -webkit-appearance: none; appearance: none; border-radius: 99px; padding: 6px 28px 6px 12px; font-size: 12px; cursor: pointer; flex: 0 0 auto; }
+.hbtn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--blush2); background: var(--blush); color: var(--rose-d); font-weight: 650; font-size: 12px;
+  padding: 6px 13px 6px 7px; border-radius: 99px; cursor: pointer; }
+.hbtn:hover { background: var(--rose); color: #fff; border-color: var(--rose); }
+.hbtn .q { width: 20px; height: 20px; border-radius: 50%; background: #fff; color: var(--rose-d); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+#tour { position: fixed; inset: 0; z-index: 50; display: none; }
+#tour.on { display: block; }
+#tour-hole { position: fixed; border-radius: 18px; box-shadow: 0 0 0 9999px rgba(43,35,38,.55); transition: all .3s ease; pointer-events: none; outline: 2px solid var(--rose); outline-offset: 3px; }
+#tour-card { position: fixed; width: 340px; background: #fff; border-radius: 18px; padding: 18px 18px 14px; box-shadow: 0 20px 50px rgba(43,35,38,.3); transition: all .3s ease; }
+#tour-card b { font-size: 16px; display: block; margin-bottom: 6px; }
+#tour-card p { margin: 0 0 14px; color: var(--sub); line-height: 1.6; font-size: 13px; }
+#tour-card .tstep { font-size: 11px; color: var(--rose-d); font-weight: 650; margin-bottom: 4px; }
+@media (max-width: 1180px) { #app { grid-template-columns: 300px 1fr 300px; } }
+@media (max-width: 900px) { body { overflow: auto; } #app { grid-template-columns: 1fr; } #main { height: 70vh; padding: 0 16px; } .col { overflow: visible; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i></i><b>IrisMix</b><span data-i18n="header.sub">Makeup Studio</span></div>
+  <div class="sp"></div>
+  <button class="hbtn" id="b-guide"><span class="q">?</span><span data-i18n="guide">Guide</span></button>
+  <select id="lang" aria-label="Language"><option value="en">English</option><option value="zh">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select>
+  <span class="chip" id="chip"><span class="dot"></span><span id="chiptext">Ready</span></span>
+</header>
+
+<div id="app">
+<!-- ======================= left: create -->
+<aside class="col" id="left">
+  <div class="card" id="card-photo">
+    <h3><span data-i18n="photo.title">Photo</span> <small data-i18n="photo.sub">the face to make up</small></h3>
+    <div class="slots"><div class="slot big" data-slot="source"><span class="lbl" data-i18n="slot.photo">Photo</span><span class="hint" data-i18n-html="slot.photo_hint"></span></div></div>
+    <div class="uprow"><button class="btn soft sm" id="b-upload" style="flex:1" data-i18n="btn.upload_photo">⬆ Upload your photo</button><button class="btn soft sm" id="b-paste" style="flex:1" data-i18n="btn.paste" data-i18n-title="btn.paste_tip">📋 Paste</button><button class="btn sm" id="b-camera" style="flex:0 0 auto" data-i18n="btn.camera">◉ Camera</button></div>
+    <input type="file" id="camfile" accept="image/*" capture="user" style="display:none">
+    <div class="sec"><span data-i18n="prepare.title">Prepare</span> <small data-i18n="prepare.sub">before the look is applied</small></div>
+    <div class="seg" id="target">
+      <button data-t="as_is" class="on" data-i18n="target.as_is">As is</button><button data-t="remake" data-i18n="target.remake">Remove makeup</button><button data-t="glasses" data-i18n="target.glasses">Glasses</button><button data-t="bangs" data-i18n="target.bangs">Bangs</button>
+    </div>
+    <div id="keepbox" style="display:none">
+      <div class="muted" style="margin-bottom:6px" data-i18n="keep.title">Keep from my own makeup</div>
+      <div class="pills" id="keep"></div>
+    </div>
+    <div id="occnote" class="muted" style="display:none" data-i18n="occ.note"></div>
+  </div>
+
+  <div class="card" id="card-look">
+    <h3><span data-i18n="look.title">Look</span> <small data-i18n="look.sub">references</small></h3>
+    <div class="seg" id="mode"><button data-m="whole" class="on" data-i18n="mode.whole">Whole look</button><button data-m="parts" data-i18n="mode.parts">Mix per part</button></div>
+    <div class="muted" style="margin:-4px 0 10px" data-i18n="look.hint"></div>
+    <div class="uprow" style="margin:0 0 10px"><button class="btn soft sm" id="b-upload-ref" style="flex:1" data-i18n="btn.upload_ref">⬆ Upload a makeup photo</button><button class="btn soft sm" id="b-paste-ref" style="flex:1" data-i18n="btn.paste" data-i18n-title="btn.paste_tip">📋 Paste</button></div>
+    <div class="slots" id="refs-whole"><div class="slot big" data-slot="whole"><span class="lbl" data-i18n="slot.whole">Whole look</span><span class="hint" data-i18n-html="slot.whole_hint"></span><button class="x" title="clear">×</button></div></div>
+    <div class="slots" id="refs-parts" style="display:none">
+      <div class="slot" data-slot="eyes"><span class="lbl" data-i18n="part.eyes">Eyes</span><span class="hint" data-i18n="slot.ref_hint">reference</span><button class="x">×</button></div>
+      <div class="slot" data-slot="lips"><span class="lbl" data-i18n="part.lips">Lips</span><span class="hint" data-i18n="slot.ref_hint">reference</span><button class="x">×</button></div>
+      <div class="slot" data-slot="face"><span class="lbl" data-i18n="part.face">Face</span><span class="hint" data-i18n="slot.ref_hint">reference</span><button class="x">×</button></div>
+      <div class="slot" data-slot="forehead"><span class="lbl" data-i18n="part.forehead">Forehead</span><span class="hint" data-i18n="slot.ref_hint">reference</span><button class="x">×</button></div>
+    </div>
+  </div>
+
+  <div class="card" id="card-examples">
+    <h3><span data-i18n="ex.title">Examples</span> <small data-i18n="ex.sub">fills the selected slot</small></h3>
+    <div class="seg" id="exkind"><button data-k="source" class="on" data-i18n="ex.faces">Faces</button><button data-k="reference" data-i18n="ex.looks">Looks</button></div>
+    <div id="gallery"></div>
+  </div>
+
+  <div class="card">
+    <h3><span data-i18n="xf.title">Place face paint</span> <small data-i18n="xf.sub">move · scale · mirror</small></h3>
+    <div class="ctl"><label data-i18n="xf.dx">Left / right</label><input type="range" id="xf-dx" min="-0.4" max="0.4" step="0.01" value="0"><output>0</output></div>
+    <div class="ctl"><label data-i18n="xf.dy">Up / down</label><input type="range" id="xf-dy" min="-0.4" max="0.4" step="0.01" value="0"><output>0</output></div>
+    <div class="ctl"><label data-i18n="xf.scale">Scale</label><input type="range" id="xf-scale" min="0.5" max="1.6" step="0.01" value="1"><output>1.00</output></div>
+    <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted" data-i18n="xf.mirror">Mirror</span><label class="sw"><input type="checkbox" id="xf-mirror"><span></span></label></div>
+    <div class="muted" style="margin-top:6px" data-i18n="xf.note"></div>
+  </div>
+
+  <div class="card" id="card-run" style="position:sticky;bottom:0">
+    <div class="row">
+      <button class="btn" id="b-warp" data-i18n="btn.transfer" data-i18n-title="btn.transfer_tip">Transfer</button>
+      <button class="btn primary" id="b-render" data-i18n="btn.render" data-i18n-title="btn.render_tip">Render</button>
+    </div>
+    <div id="progress"><span class="spin"></span><span id="ptext"></span></div>
+    <div id="log"></div>
+  </div>
+</aside>
+
+<!-- ======================= center: viewport -->
+<main id="main">
+  <div id="bar">
+    <button class="tab on" data-v="0" data-i18n="view.look">Look</button>
+    <button class="tab" data-v="1" data-i18n="view.render">Render</button>
+    <button class="tab" data-v="2" data-i18n="view.warp">Warp</button>
+    <button class="tab" data-v="3" data-i18n="view.layer">Layer</button>
+    <button class="tab" data-v="4" id="tab-prep" data-i18n="view.prepared">Prepared</button>
+    <button class="tab" data-v="5" data-i18n="view.photo">Photo</button>
+    <button class="tab tog" id="b-compare" data-i18n="view.compare" data-i18n-title="view.compare_tip">Compare</button>
+  </div>
+  <div id="view">
+    <div id="stage"><canvas id="cv" width="2" height="2"></canvas><div id="wipe"></div></div>
+    <div id="empty"><b data-i18n="empty.title">Welcome to IrisMix</b><span data-i18n="empty.text"></span></div>
+  </div>
+  <div id="sheet"><div class="top"><b id="sheet-title"></b><button class="btn sm" id="sheet-close" data-i18n="sheet.close">Close</button></div><div class="cards" id="sheet-cards"></div><div class="overall" id="sheet-overall"></div></div>
+  <div id="zoombox"><button id="z-in" data-i18n-title="zoom.in">+</button><button id="z-out" data-i18n-title="zoom.out">−</button><button id="b-fit" data-i18n-title="zoom.fit">⤢</button></div>
+  <div id="status"><span><span data-i18n="status.stage">stage</span> <b id="s-stage">idle</b></span><span><span data-i18n="status.size">size</span> <b id="s-size">–</b></span><span><span data-i18n="status.zoom">zoom</span> <b id="s-zoom">–</b></span><span><span data-i18n="status.edit">edit</span> <b id="s-edit">–</b></span><span><span data-i18n="status.mem">memory</span> <b id="s-mem">–</b></span><span id="s-pix"></span><span style="flex:1"></span><button class="mini" id="b-free" data-i18n="btn.free" data-i18n-title="btn.free_tip">Free memory</button></div>
+  <div id="toast"></div>
+</main>
+
+<!-- ======================= right: edit -->
+<aside class="col" id="right">
+  <div class="card" id="editcard">
+    <div class="tabs" id="etabs"><button data-p="adjust" class="on" data-i18n="tab.adjust">Adjust</button><button data-p="finish" data-i18n="tab.finish">Finish</button><button data-p="shades" data-i18n="tab.shades">Shades</button><button data-p="suggest" data-i18n="tab.suggest">Suggest</button><button data-p="looks" data-i18n="tab.looks">Looks</button><button data-p="steps" data-i18n="tab.steps">Steps</button></div>
+
+    <div class="pane on" id="p-adjust">
+      <div class="sec" data-i18n="adj.overall">Overall</div>
+      <div class="ctl"><label data-i18n="ctl.strength">Strength</label><input type="range" id="strength" min="0" max="1.5" step="0.01" value="1"><output id="o-strength">1.00</output></div>
+      <div id="parts"></div>
+    </div>
+
+    <div class="pane" id="p-finish">
+      <div class="sec"><span data-i18n="fin.soft">Softness</span> <small data-i18n="fin.soft_sub">blur radius in mm</small></div>
+      <div class="ctl"><label data-i18n="part.eyes">Eyes</label><input type="range" id="soft-eyes" min="0" max="5" step="0.1" value="0"><output>0.0</output></div>
+      <div class="ctl"><label data-i18n="part.lips">Lips</label><input type="range" id="soft-lips" min="0" max="3" step="0.1" value="0"><output>0.0</output></div>
+      <div class="ctl"><label data-i18n="part.face">Face</label><input type="range" id="soft-face" min="0" max="5" step="0.1" value="0"><output>0.0</output></div>
+      <div class="sec"><span data-i18n="fin.lip">Lip finish</span> <small data-i18n="fin.lip_sub">matte ↔ glossy</small></div>
+      <div class="ctl"><label data-i18n="fin.finish">Finish</label><input type="range" id="finish" min="-1" max="1" step="0.05" value="0"><output>0.00</output></div>
+      <div class="muted" data-i18n="fin.note"></div>
+    </div>
+
+    <div class="pane" id="p-shades">
+      <div id="shade-empty" class="muted" style="margin:10px 0" data-i18n="sh.empty"></div>
+      <button class="btn soft" id="b-analyse" style="width:100%;margin-top:6px" data-i18n="sh.analyse">Analyse skin &amp; lips</button>
+      <div id="shade-ui" style="display:none">
+        <div class="report" id="report"></div>
+        <div class="sec"><span data-i18n="sh.foundation">Foundation</span> <small data-i18n="sh.recommended">★ recommended</small></div>
+        <div class="swatches" id="sw-foundation"></div>
+        <div class="ctl"><label data-i18n="ctl.coverage">Coverage</label><input type="range" id="st-foundation" min="0" max="1" step="0.05" value="0.6"><output>0.60</output></div>
+        <div class="pills" id="fin-foundation"></div>
+        <div class="sec" data-i18n="sh.blush">Blush</div>
+        <div class="swatches" id="sw-blush"></div>
+        <div class="ctl"><label data-i18n="ctl.strength">Strength</label><input type="range" id="st-blush" min="0" max="1" step="0.05" value="0.4"><output>0.40</output></div>
+        <div class="sec"><span data-i18n="sh.lipstick">Lipstick</span> <small data-i18n="sh.for_face">★ for this face</small></div>
+        <div class="swatches" id="sw-lipstick"></div>
+        <div class="ctl"><label data-i18n="ctl.strength">Strength</label><input type="range" id="st-lipstick" min="0" max="1" step="0.05" value="0.8"><output>0.80</output></div>
+        <div class="pills" id="fin-lipstick"></div>
+        <div class="sec" data-i18n="sh.compare">Compare side by side</div>
+        <div class="row"><button class="btn sm soft cmp" data-c="foundation" data-i18n="sh.cmp_f">Foundations</button><button class="btn sm soft cmp" data-c="lipstick" data-i18n="sh.cmp_l">Lipsticks</button><button class="btn sm soft cmp" data-c="blush" data-i18n="sh.cmp_b">Blush</button></div>
+        <div class="muted" style="margin-top:10px" data-i18n="sh.note"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-suggest">
+      <div class="muted" style="margin:10px 0" data-i18n="sug.note"></div>
+      <div class="seg" id="recwhich"><button data-w="examples" class="on" data-i18n="sug.examples">Example looks</button><button data-w="mine" data-i18n="sug.mine">My references</button><button data-w="all" data-i18n="sug.both">Both</button></div>
+      <button class="btn primary" id="b-recommend" style="width:100%" data-i18n="sug.find">Find looks for this face</button>
+      <button class="btn soft" id="b-stylist" style="width:100%;margin-top:8px;display:none" data-i18n="sug.stylist">Ask the stylist (AI)</button>
+      <div id="stylistbox"></div>
+      <div id="reclist"></div>
+    </div>
+    <div class="pane" id="p-looks">
+      <div class="row" style="margin:10px 0 4px"><button class="btn soft" id="b-keep" data-i18n="looks.keep">Keep current look</button></div>
+      <div class="row" style="justify-content:space-between;margin:8px 0"><span class="muted" data-i18n="looks.show">Show the working look on top</span><label class="sw"><input type="checkbox" id="showwork" checked><span></span></label></div>
+      <div id="looklist" class="muted"></div>
+      <div id="blendbox" style="display:none">
+        <div class="sec" data-i18n="looks.blend">Blend two looks</div>
+        <div class="row"><select id="bl-a"></select><select id="bl-b"></select><label class="sw"><input type="checkbox" id="bl-on"><span></span></label></div>
+        <div class="ctl"><label data-i18n="ctl.mix">Mix</label><input type="range" id="bl-t" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-steps">
+      <div class="muted" style="margin:10px 0" data-i18n="steps.note"></div>
+      <input type="range" id="step" min="0" max="5" step="1" value="5">
+      <div class="steps" id="steplbl"><span data-i18n="step.0">Bare</span><span data-i18n="step.1">Base</span><span data-i18n="step.2">Brows</span><span data-i18n="step.3">Eyes</span><span data-i18n="step.4">Lips</span><span data-i18n="step.5">Paint</span></div>
+      <div class="row" style="margin-top:12px"><button class="btn soft" id="b-play" data-i18n="steps.play">▶ Play</button></div>
+    </div>
+  </div>
+
+  <div class="card" id="infocard">
+    <h3><span data-i18n="res.title">Result</span> <small id="edit-ms"></small></h3>
+    <div id="info" class="muted"></div>
+  </div>
+  <div class="exportbar" id="card-export"><div class="row"><button class="btn" id="b-reset" data-i18n="btn.reset">Reset edits</button><button class="btn primary" id="b-export" data-i18n="btn.export">Export</button></div>
+    <div class="muted" style="margin-top:8px;text-align:center" data-i18n-html="keys.help"></div></div>
+</aside>
+</div>
+<input type="file" id="file" accept="image/*" style="display:none">
+
+<div id="tour"><div id="tour-hole"></div><div id="tour-card"><div class="tstep" id="tour-step"></div><b id="tour-title"></b><p id="tour-body"></p>
+  <div class="row"><button class="btn sm" id="tour-skip" data-i18n="tour.skip">Skip</button><span style="flex:1"></span><button class="btn sm" id="tour-prev" data-i18n="tour.prev">Back</button><button class="btn sm primary" id="tour-next" data-i18n="tour.next">Next</button></div></div></div>
+
+<script src="/static/i18n.js"></script>
+<script>
+"use strict";
+const PARTS = ['lips', 'eyes', 'brows', 'face', 'forehead'], PCOL = ['#d65f72', '#9b7bc4', '#8a6b5a', '#e8a98f', '#7fb8a8'];
+const STEP_ORDER = [3, 2, 1, 0, 4];                 // base (face), brows, eyes, lips, face paint (forehead)
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+let state = {}, V = {}, selSlot = 'source', mode = 'whole', view = 0, compare = false, wipe = 0.5, exKind = 'source', examples = [];
+const ed = { strength: 1, ps: [1, 1, 1, 1, 1], hue: [0, 0, 0, 0, 0], rec: [0, 0, 0, 0, 0], recHex: ['#b8323f', '#7a5a8a', '#5a4030', '#e3b49c', '#d8a890'],
+  soft: { eyes: 0, lips: 0, face: 0 }, finish: 0, step: 5, showWork: true };
+const shade = { info: null, foundation: null, blush: null, lipstick: null, strength: { foundation: .6, blush: .4, lipstick: .8 }, finish: { foundation: 'satin', lipstick: 'satin' } };
+const stack = { order: [], visible: {}, strength: {}, blend: null };
+
+let LANG = 'en';
+try { LANG = localStorage.getItem('irismix.lang') || 'en'; } catch (e) {}
+if (!window.I18N || !I18N[LANG]) LANG = 'en';
+function t(k, p) {
+  let s = (I18N[LANG] && I18N[LANG][k]) ?? I18N.en[k] ?? k;
+  for (const [a, v] of Object.entries(p || {})) s = s.split('{' + a + '}').join(v);
+  return s;
+}
+const cap = s => LANG === 'en' && s ? s[0].toUpperCase() + s.slice(1) : s;
+function reason(x) {                                   // structured recommendation reason -> sentence
+  const c = t('colour.' + x.colour), ut = t('ut.' + x.ut);
+  if (x.part === 'lips') return cap(t('r.lips.' + x.rel, { colour: c, ut })) + (x.rich ? t('r.rich') : '');
+  return cap(t('r.eyes.' + x.rel, { colour: c, ut }));
+}
+function shadeName(c) {                                // foundation names are depth + undertone, others come from the table
+  const s = (shade.info?.library || []).find(x => x.id === c.id || x.name === c.name) || c;
+  return s.depth ? `${t('depth.' + s.depth)} ${t('utname.' + s.undertone)}` : t('shade.' + (s.name || c.name));
+}
+function applyI18n() {
+  document.documentElement.lang = { en: 'en', zh: 'zh-Hant', ja: 'ja', ko: 'ko' }[LANG];
+  $$('[data-i18n]').forEach(e => e.textContent = t(e.dataset.i18n));
+  $$('[data-i18n-html]').forEach(e => e.innerHTML = t(e.dataset.i18nHtml));
+  $$('[data-i18n-title]').forEach(e => e.title = t(e.dataset.i18nTitle));
+  $$('.slot .up').forEach(e => { e.textContent = t('slot.upload'); e.title = t('slot.upload_tip'); });
+  $('#wipe').dataset.label = t('view.before');
+  $$('#keep .pill').forEach(b => b.textContent = t('part.' + b.dataset.p));
+  if (res) $('#tab-prep').textContent = t(res.has_free ? 'view.lifted' : res.has_bare ? 'view.bare' : 'view.prepared');
+  $('#b-play').textContent = t(playing ? 'steps.stop' : 'steps.play');
+  buildParts(); renderInfo(); renderLooks(); renderRec(); if (shade.info) renderShades(); if (sheetData) renderSheet();
+  if (state.inputs) setState(state); if (tourOn) showTour();
+}
+$('#lang').value = LANG;
+$('#lang').addEventListener('change', e => { LANG = e.target.value; try { localStorage.setItem('irismix.lang', LANG); } catch (x) {} applyI18n(); });
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); }
+async function api(path, opt = {}) {
+  const r = await fetch(path, opt);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).error || m; } catch (e) {} throw new Error(m); }
+  return r;
+}
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) }).then(r => r.json());
+function fill(r) { const p = (r.value - r.min) / (r.max - r.min) * 100; r.style.setProperty('--p', p + '%'); }
+document.addEventListener('input', e => { if (e.target.type === 'range') fill(e.target); });
+
+/* ---------------- slots, uploads, examples */
+function selectSlot(s) { selSlot = s; $$('.slot').forEach(e => e.classList.toggle('sel', e.dataset.slot === s)); if (s !== 'source' && exKind !== 'reference') setExKind('reference'); if (s === 'source' && exKind !== 'source') setExKind('source'); }
+function nextSlot() {
+  if (!state.inputs?.source) return 'source';
+  if (mode === 'whole') return 'whole';
+  return ['eyes', 'lips', 'face', 'forehead'].find(s => !state.inputs?.[s]) || selSlot;
+}
+async function upload(slot, blob, keepSel) {
+  try { setState(await (await api(`/api/upload?slot=${slot}`, { method: 'POST', body: blob })).json()); refreshThumbs(); if (!keepSel) selectSlot(nextSlot()); }
+  catch (e) { toast(t('toast.upload_failed', { e: e.message })); }
+}
+function browse(slot) { $('#file').dataset.slot = slot; $('#file').click(); }
+$$('.slot').forEach(el => {
+  const slot = el.dataset.slot;
+  const up = document.createElement('button'); up.className = 'up'; up.textContent = t('slot.upload'); up.title = t('slot.upload_tip');
+  up.addEventListener('click', e => { e.stopPropagation(); selectSlot(slot); browse(slot); }); el.appendChild(up);
+  el.addEventListener('click', e => {
+    if (e.target.classList.contains('x')) return;
+    const has = slot === 'source' ? state.inputs?.source : state.inputs?.[slot];
+    if (!has || selSlot === slot) { selectSlot(slot); browse(slot); } else selectSlot(slot);
+  });
+  el.querySelector('.x')?.addEventListener('click', async e => { e.stopPropagation(); setState(await post(`/api/clear?slot=${slot}`)); refreshThumbs(); });
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag'));
+  el.addEventListener('drop', async e => {
+    e.preventDefault(); el.classList.remove('drag');
+    const f = e.dataTransfer.files[0], url = e.dataTransfer.getData('text/uri-list');
+    if (f) upload(slot, f); else if (url) upload(slot, await (await fetch(url)).blob());
+  });
+});
+$('#b-upload').addEventListener('click', () => { selectSlot('source'); browse('source'); });
+$('#b-camera').addEventListener('click', () => $('#camfile').click());
+async function pasteClipboard(slot) {                  // one click: read an image from the clipboard into a slot
+  try {
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find(x => x.startsWith('image/'));
+      if (type) { selectSlot(slot); await upload(slot, await item.getType(type)); toast(t('toast.pasted', { slot: t(slot === 'source' ? 'slot.photo' : slot === 'whole' ? 'slot.whole' : 'part.' + slot) })); return; }
+    }
+    toast(t('toast.clip_empty'));
+  } catch (e) { toast(t('toast.clip_denied'), 3500); }
+}
+$('#b-paste').addEventListener('click', () => pasteClipboard('source'));
+const refSlot = () => selSlot !== 'source' ? selSlot : mode === 'whole' ? 'whole' : (nextSlot() === 'source' ? 'eyes' : nextSlot());
+$('#b-upload-ref').addEventListener('click', () => { const s = refSlot(); selectSlot(s); browse(s); });
+$('#b-paste-ref').addEventListener('click', () => pasteClipboard(refSlot()));
+$('#camfile').addEventListener('change', e => { const f = e.target.files[0]; if (f) upload('source', f); e.target.value = ''; });
+window.addEventListener('paste', e => {                       // Ctrl+V: paste an image into the selected slot
+  const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (it) { e.preventDefault(); upload(selSlot, it.getAsFile()); toast(t('toast.pasted', { slot: t(selSlot === 'source' ? 'slot.photo' : selSlot === 'whole' ? 'slot.whole' : 'part.' + selSlot) })); }
+});
+$('#file').addEventListener('change', e => { const f = e.target.files[0]; if (f) upload(e.target.dataset.slot, f); e.target.value = ''; });
+$$('#mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+function setMode(m) {
+  mode = m; $$('#mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#refs-whole').style.display = m === 'whole' ? '' : 'none'; $('#refs-parts').style.display = m === 'parts' ? '' : 'none';
+  if (selSlot !== 'source') selectSlot(nextSlot());
+}
+function refreshThumbs() {
+  $$('.slot').forEach(el => {
+    const s = el.dataset.slot, has = s === 'source' ? state.inputs?.source : state.inputs?.[s];
+    el.classList.toggle('has', !!has && s !== 'source');
+    let img = el.querySelector('img');
+    if (has) { if (!img) { img = document.createElement('img'); el.prepend(img); } img.src = `/api/img/thumb_${s}.png?t=${Date.now()}`; el.querySelector('.hint').style.display = 'none'; }
+    else { if (img) img.remove(); el.querySelector('.hint').style.display = ''; }
+  });
+}
+function setExKind(k) { exKind = k; $$('#exkind button').forEach(b => b.classList.toggle('on', b.dataset.k === k)); renderGallery(); }
+$$('#exkind button').forEach(b => b.addEventListener('click', () => setExKind(b.dataset.k)));
+function renderGallery() {
+  const g = $('#gallery'); g.innerHTML = '';
+  examples.filter(e => e.kind === exKind || e.kind === 'any').forEach(e => {
+    const d = document.createElement('div'); d.className = 'g'; d.title = e.name; d.draggable = true;
+    d.innerHTML = `<img loading="lazy" src="${e.url}"><span>${e.name}</span>`;
+    d.addEventListener('click', async () => {
+      let slot = selSlot;
+      if (e.kind === 'source' && slot !== 'source') slot = 'source';
+      if (e.kind === 'reference' && slot === 'source') slot = nextSlot() === 'source' ? (mode === 'whole' ? 'whole' : 'eyes') : nextSlot();
+      upload(slot, await (await fetch(e.url)).blob());
+    });
+    d.addEventListener('dragstart', ev => ev.dataTransfer.setData('text/uri-list', new URL(e.url, location).href));
+    g.appendChild(d);
+  });
+}
+async function loadExamples() { examples = await (await api('/api/examples')).json(); renderGallery(); }
+
+/* ---------------- options: target, keep, transform */
+$$('#target button').forEach(b => b.addEventListener('click', () => setTarget(b.dataset.t)));
+async function setTarget(t) {
+  $$('#target button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('#keepbox').style.display = t === 'remake' ? '' : 'none'; $('#occnote').style.display = t === 'glasses' || t === 'bangs' ? '' : 'none';
+  setState(await post('/api/options', { target: t }));
+}
+$('#keep').innerHTML = PARTS.map(p => `<button class="pill" data-p="${p}">${t('part.' + p)}</button>`).join('');
+$$('#keep .pill').forEach(b => b.addEventListener('click', async () => {
+  b.classList.toggle('on'); setState(await post('/api/options', { keep: $$('#keep .pill.on').map(x => x.dataset.p) }));
+}));
+['dx', 'dy', 'scale'].forEach(k => $('#xf-' + k).addEventListener('input', e => { e.target.nextElementSibling.textContent = (+e.target.value).toFixed(2); sendXf(); }));
+$('#xf-mirror').addEventListener('input', sendXf);
+let xfT; function sendXf() { clearTimeout(xfT); xfT = setTimeout(() => post('/api/options', { xform: { dx: +$('#xf-dx').value, dy: +$('#xf-dy').value, scale: +$('#xf-scale').value, mirror: $('#xf-mirror').checked } }).then(setState), 150); }
+
+/* ---------------- run + polling */
+async function run(render) { try { setState(await post('/api/run', { render })); poll(); } catch (e) { toast(e.message); } }
+$('#b-warp').addEventListener('click', () => run(false));
+$('#b-render').addEventListener('click', () => run(true));
+let polling = false;
+async function poll() {
+  if (polling) return; polling = true;
+  try { while (true) { const st = await (await api('/api/state')).json(); setState(st); if (!st.busy) break; await new Promise(r => setTimeout(r, 400)); } }
+  finally { polling = false; }
+}
+function setState(st) {
+  const old = state.versions || {}; state = st;
+  const ready = st.inputs?.source && (['whole', 'eyes', 'lips', 'face', 'forehead'].some(s => st.inputs[s]) || (st.options?.target === 'remake' && st.options.keep.length));
+  $('#b-warp').disabled = $('#b-render').disabled = !ready || st.busy;
+  const p = $('#progress'); p.classList.toggle('busy', !!st.busy); p.classList.toggle('err', !!st.error);
+  $('#ptext').textContent = st.error ? st.error : st.busy ? st.stage : st.result ? t('prog.done', { s: st.result.total }) : ready ? t('prog.ready') : t('prog.choose');
+  $('#log').textContent = (st.log || []).slice(-6).join('\n'); $('#log').scrollTop = 1e9;
+  $('#s-stage').textContent = st.stage || 'idle';
+  if (st.mem) $('#s-mem').textContent = [st.mem.ram != null ? `RAM ${st.mem.ram} GB` : '', st.mem.gpu_reserved != null ? `GPU ${st.mem.gpu_reserved} GB` : ''].filter(Boolean).join(' · ') || '–';
+  const c = $('#chip'); c.className = 'chip' + (st.busy ? ' busy' : st.error ? ' err' : ''); $('#chiptext').textContent = st.busy ? st.stage : st.error ? t('chip.error') : t('chip.ready', { n: st.cached_refs });
+  const v = st.versions || {};
+  if (st.photo && v.photo !== old.photo) loadPhoto(v.photo);
+  if (st.result && (v.base !== V.base)) loadResult(st.result);
+  else if (st.result && v.layer !== V.layer) loadLayer();
+  if (v.stack !== V.stack) loadGroup('stack', ['stackF', 'stackA'], ['SF', 'SA'], st.flags.stack);
+  if (v.shade !== V.shade) { loadGroup('shade', ['underF', 'underA'], ['UF', 'UA'], st.flags.under); loadGroup('shade', ['lipF', 'lipA'], ['LF', 'LA'], st.flags.lip); }
+  if (v.looks !== V.looks) { V.looks = v.looks; renderLooks(); }
+  if (v.rec !== V.rec) { V.rec = v.rec; renderRec(); }
+}
+
+/* ---------------- WebGL: layer composite and closed-form edits */
+const cv = $('#cv'), gl = cv.getContext('webgl2', { preserveDrawingBuffer: true, premultipliedAlpha: false });
+const VS = `#version 300 es
+in vec2 p; out vec2 uv; void main() { uv = vec2(p.x * .5 + .5, .5 - p.y * .5); gl_Position = vec4(p, 0., 1.); }`;
+const FS = `#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D tT, tPh, tF, tA, tM, tM2, tR, tP, tX, tUF, tUA, tSF, tSA, tLF, tLA;
+uniform float uStr, uEps, uWipe, uFin; uniform int uView, uCmp, uMode, uU, uS, uL, uW; uniform vec2 uSize;
+uniform float uPS[5], uHue[5], uRecOn[5], uMeanL[5]; uniform vec3 uRec[5];
+vec3 lin(vec3 c) { return mix(c / 12.92, pow((c + .055) / 1.055, vec3(2.4)), step(.04045, c)); }
+vec3 gam(vec3 c) { c = max(c, 0.); return mix(c * 12.92, 1.055 * pow(c, vec3(1. / 2.4)) - .055, step(.0031308, c)); }
+float fl(float t) { return t > .008856 ? pow(t, 1. / 3.) : 7.787 * t + 16. / 116.; }
+float fi(float t) { return t > .206893 ? t * t * t : (t - 16. / 116.) / 7.787; }
+vec3 lab(vec3 c) {
+  vec3 x = mat3(.412453, .212671, .019334, .357580, .715160, .119193, .180423, .072169, .950227) * lin(clamp(c, 0., 1.));
+  x /= vec3(.950456, 1., 1.088754); float Y = fl(x.y);
+  return vec3(x.y > .008856 ? 116. * Y - 16. : 903.3 * x.y, 500. * (fl(x.x) - Y), 200. * (Y - fl(x.z)));
+}
+vec3 rgb(vec3 L) {
+  float fy = (L.x + 16.) / 116., fx = fy + L.y / 500., fz = fy - L.z / 200.;
+  vec3 x = vec3(fi(fx), L.x > 7.9996 ? fy * fy * fy : L.x / 903.3, fi(fz)) * vec3(.950456, 1., 1.088754);
+  return clamp(gam(mat3(3.240479, -.969256, .055648, -1.53715, 1.875991, -.204043, -.498535, .041556, 1.057311) * x), 0., 1.);
+}
+float W(int k, vec3 m, vec3 m2) { return k == 0 ? m.r : k == 1 ? m.g : k == 2 ? m.b : k == 3 ? m2.r : m2.g; }
+vec3 over(vec3 c, float a, vec3 F) { a = clamp(a, 0., 1.); return a * F + (1. - a) * c; }
+void work(out float a, out vec3 F) {
+  F = texture(tF, uv).rgb; a = texture(tA, uv).r; vec3 m = texture(tM, uv).rgb, m2 = texture(tM2, uv).rgb;
+  float sel = 0.; for (int k = 0; k < 5; k++) sel += uPS[k] * W(k, m, m2);
+  a = clamp(a * sel, 0., 1.);
+  for (int k = 0; k < 5; k++) if (uRecOn[k] > .5 && W(k, m, m2) > .5 && a > uEps) { vec3 L = lab(F); F = rgb(vec3(L.x - uMeanL[k] + uRec[k].x, uRec[k].y, uRec[k].z)); }
+  for (int k = 0; k < 5; k++) if (uHue[k] != 0. && W(k, m, m2) > .5 && a > uEps) { vec3 L = lab(F); float c = cos(uHue[k]), s = sin(uHue[k]); F = rgb(vec3(L.x, c * L.y - s * L.z, s * L.y + c * L.z)); }
+  if (uFin != 0. && m.r > .5 && a > uEps) { vec3 L = lab(F); float mu = uRecOn[0] > .5 ? uRec[0].x : uMeanL[0]; L.x = clamp(L.x + uFin * max(L.x - mu, 0.), 0., 100.); F = rgb(L); }
+}
+void main() {
+  vec3 P = texture(tPh, uv).rgb;
+  if (uMode == 0 || uView == 5 || (uCmp == 1 && uv.x < uWipe)) { o = vec4(P, 1.); return; }
+  if (uView == 1) { o = vec4(texture(tR, uv).rgb, 1.); return; }
+  if (uView == 2) { o = vec4(texture(tP, uv).rgb, 1.); return; }
+  if (uView == 4) { o = vec4(texture(tX, uv).rgb, 1.); return; }
+  float a; vec3 F; work(a, F);
+  if (uView == 3) { vec2 q = floor(uv * uSize / 16.); vec3 ck = mod(q.x + q.y, 2.) < 1. ? vec3(.97, .95, .94) : vec3(.89, .85, .84); o = vec4(over(ck, a, F), 1.); return; }
+  vec3 c = texture(tT, uv).rgb;
+  if (uU == 1) c = over(c, texture(tUA, uv).r, texture(tUF, uv).rgb);
+  if (uS == 1) c = over(c, texture(tSA, uv).r, texture(tSF, uv).rgb);
+  if (uW == 1) c = over(c, a * uStr, F);
+  if (uL == 1) c = over(c, texture(tLA, uv).r, texture(tLF, uv).rgb);
+  o = vec4(c, 1.);
+}`;
+function sh(t, s) { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(x); return x; }
+const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(prog, n);
+const TEX = ['T', 'Ph', 'F', 'A', 'M', 'M2', 'R', 'P', 'X', 'UF', 'UA', 'SF', 'SA', 'LF', 'LA'];
+const tex = {}; TEX.forEach((k, i) => { tex[k] = gl.createTexture(); gl.uniform1i(U('t' + k), i); setTex(k, null); });
+let res = null, photo = null, flags = { U: 0, S: 0, L: 0 };
+function setTex(k, im) {
+  const i = TEX.indexOf(k); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tex[k]);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  if (im) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+  for (const [p, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, v);
+}
+function loadImg(url) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = url; }); }
+async function loadPhoto(v) {
+  const im = await loadImg(`/api/img/photo.png?v=${v}`); setTex('Ph', im); photo = { width: im.width, height: im.height };
+  if (state.result) { draw(); return; }                     // a result is already shown (page reload)
+  res = null; V.base = -1; flags = { U: 0, S: 0, L: 0 }; setRes(photo.width, photo.height); $('#empty').style.display = 'none';
+  $$('.tab[data-v]').forEach(t => t.disabled = +t.dataset.v !== 5); setView(5, true); fit(); draw();
+  renderInfo(); needResult(true); shade.info = null; $('#shade-ui').style.display = 'none'; $('#shade-empty').style.display = '';
+}
+async function loadResult(r) {
+  V.base = state.versions.base; V.layer = state.versions.layer;
+  const names = { T: 'target', R: 'result', P: 'paste', M: 'masks', M2: 'masks2', F: 'F', A: 'alpha' };
+  if (r.has_bare) names.X = 'bare'; else if (r.has_free) names.X = 'free';
+  const keys = Object.keys(names), ims = await Promise.all(keys.map(k => loadImg(`/api/img/${names[k]}.png?v=${V.base}`)));
+  keys.forEach((k, i) => setTex(k, ims[i]));
+  const first = !res; res = r; setRes(r.width, r.height);
+  $('#empty').style.display = 'none'; needResult(false);
+  $$('.tab[data-v]').forEach(t => t.disabled = false);
+  if (!r.rendered) $('.tab[data-v="1"]').disabled = true;
+  $('#tab-prep').disabled = !(r.has_bare || r.has_free); $('#tab-prep').textContent = t(r.has_free ? 'view.lifted' : r.has_bare ? 'view.bare' : 'view.prepared');
+  if (view === 5 || ($(`.tab[data-v="${view}"]`).disabled)) setView(0, true);
+  renderInfo();
+  if (first) fit();
+  if (ed.soft.eyes || ed.soft.lips || ed.soft.face) sendSoft(); else draw();
+}
+function needResult(off) {                             // edits need a result; shades and suggestions only need a photo
+  ['#p-adjust', '#p-finish', '#p-looks', '#p-steps', '#card-export'].forEach(q => $(q).classList.toggle('disabled', off));
+}
+function renderInfo() {
+  if (!res) { $('#info').textContent = t('res.none'); return; }
+  const r = res, tm = r.timings, f = x => x === undefined ? null : x < 1 ? (x * 1000).toFixed(0) + ' ms' : x.toFixed(2) + ' s';
+  const rows = [['res.prepare', f(tm.occluder ?? tm.remake)], ['res.decompose', f(tm.decompose)], ['res.warp', f(tm.warp)], ['res.render', f(tm.render)],
+    ['res.restore', f(tm.restore)], ['res.recover', f(tm.recover)], ['res.total', r.total + ' s'], ['res.cached', String(state.cached_refs ?? '')]].filter(x => x[1]);
+  $('#info').innerHTML = rows.map(([k, v]) => `<div class="row" style="justify-content:space-between"><span>${t(k)}</span><b style="font-weight:600;color:var(--ink)">${v}</b></div>`).join('')
+    + (r.caption ? `<div style="margin-top:8px;font-family:var(--mono);font-size:10.5px;max-height:90px;overflow:auto;background:var(--sand);border-radius:10px;padding:8px">${r.caption.replace(/</g, '&lt;')}</div>` : '');
+}
+async function loadLayer() {
+  V.layer = state.versions.layer;
+  const [F, A] = await Promise.all(['F', 'alpha'].map(n => loadImg(`/api/img/${n}.png?v=${V.layer}`))); setTex('F', F); setTex('A', A); draw();
+}
+async function loadGroup(g, names, keys, on) {
+  V[g] = state.versions[g];
+  if (on) { const ims = await Promise.all(names.map(n => loadImg(`/api/img/${n}.png?v=${V[g]}`))); keys.forEach((k, i) => setTex(k, ims[i])); }
+  flags[keys[0][0]] = on ? 1 : 0; draw();
+}
+function setRes(w, h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); $('#s-size').textContent = `${w}×${h}`; }
+function hexLab(h) {
+  const c = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(v => v > .04045 ? ((v + .055) / 1.055) ** 2.4 : v / 12.92);
+  const x = (.412453 * c[0] + .357580 * c[1] + .180423 * c[2]) / .950456, y = .212671 * c[0] + .715160 * c[1] + .072169 * c[2], z = (.019334 * c[0] + .119193 * c[1] + .950227 * c[2]) / 1.088754;
+  const f = t => t > .008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return [y > .008856 ? 116 * f(y) - 16 : 903.3 * y, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+}
+function stepMask() { const m = [0, 0, 0, 0, 0]; STEP_ORDER.slice(0, ed.step).forEach(k => m[k] = 1); return m; }
+function draw() {
+  if (!photo) return;
+  const t0 = performance.now(), sm = stepMask();
+  gl.uniform1i(U('uMode'), res ? 1 : 0); gl.uniform1f(U('uStr'), ed.strength); gl.uniform1f(U('uEps'), res ? res.eps : .02);
+  gl.uniform1i(U('uView'), view); gl.uniform1i(U('uCmp'), compare ? 1 : 0); gl.uniform1f(U('uWipe'), wipe); gl.uniform2f(U('uSize'), cv.width, cv.height);
+  gl.uniform1fv(U('uPS'), ed.ps.map((s, k) => s * sm[k])); gl.uniform1fv(U('uHue'), ed.hue.map(d => d * Math.PI / 180)); gl.uniform1fv(U('uRecOn'), ed.rec);
+  gl.uniform1fv(U('uMeanL'), PARTS.map(p => res ? res.mean_L[p] : 50)); gl.uniform3fv(U('uRec'), ed.recHex.flatMap(hexLab)); gl.uniform1f(U('uFin'), ed.finish);
+  gl.uniform1i(U('uU'), flags.U); gl.uniform1i(U('uS'), flags.S); gl.uniform1i(U('uL'), flags.L); gl.uniform1i(U('uW'), ed.showWork ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
+  const ms = performance.now() - t0; $('#s-edit').textContent = ms < .1 ? '< 0.1 ms' : ms.toFixed(1) + ' ms';
+}
+
+/* ---------------- adjust */
+function buildParts() {
+  $('#parts').innerHTML = PARTS.map((p, k) => `
+    <div class="part ${ed.ps[k] ? '' : 'off'}" data-k="${k}">
+      <div class="head"><b><i style="background:${PCOL[k]}"></i>${t('part.' + p)}</b><label class="sw"><input type="checkbox" class="on" ${ed.ps[k] ? 'checked' : ''}><span></span></label></div>
+      <div class="body">
+        <div class="ctl"><label>${t('ctl.strength')}</label><input type="range" class="ps" min="0" max="1.5" step="0.01" value="${ed.ps[k] || 1}"><output>${(ed.ps[k] || 1).toFixed(2)}</output></div>
+        <div class="ctl"><label>${t('ctl.hue')}</label><input type="range" class="hue" min="-180" max="180" step="1" value="${ed.hue[k]}"><output>${ed.hue[k]}°</output></div>
+        <div class="rc">${t('ctl.recolour')} <input type="color" class="col" value="${ed.recHex[k]}"><label class="sw"><input type="checkbox" class="rec" ${ed.rec[k] ? 'checked' : ''}><span></span></label></div>
+      </div>
+    </div>`).join('');
+  $$('.part').forEach(el => {
+    const k = +el.dataset.k, ps = el.querySelector('.ps');
+    el.querySelector('.on').addEventListener('input', e => { ed.ps[k] = e.target.checked ? +ps.value : 0; el.classList.toggle('off', !e.target.checked); draw(); });
+    ps.addEventListener('input', e => { ed.ps[k] = +e.target.value; e.target.nextElementSibling.textContent = (+e.target.value).toFixed(2); draw(); });
+    el.querySelector('.hue').addEventListener('input', e => { ed.hue[k] = +e.target.value; e.target.nextElementSibling.textContent = e.target.value + '°'; draw(); });
+    el.querySelector('.col').addEventListener('input', e => { ed.recHex[k] = e.target.value; if (!ed.rec[k]) { ed.rec[k] = 1; el.querySelector('.rec').checked = true; } draw(); });
+    el.querySelector('.rec').addEventListener('input', e => { ed.rec[k] = e.target.checked ? 1 : 0; draw(); });
+  });
+  $$('#right input[type=range]').forEach(fill);
+}
+buildParts();
+$('#strength').addEventListener('input', e => { ed.strength = +e.target.value; $('#o-strength').textContent = ed.strength.toFixed(2); draw(); });
+$$('#etabs button').forEach(b => b.addEventListener('click', () => {
+  $$('#etabs button').forEach(x => x.classList.toggle('on', x === b)); $$('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.p));
+}));
+
+/* ---------------- finish: softness (server, exact) + lip finish (live) */
+['eyes', 'lips', 'face'].forEach(p => $('#soft-' + p).addEventListener('input', e => { ed.soft[p] = +e.target.value; e.target.nextElementSibling.textContent = (+e.target.value).toFixed(1); sendSoft(); }));
+let softT; function sendSoft() { clearTimeout(softT); softT = setTimeout(async () => { try { setState(await post('/api/soft', { soft: ed.soft })); } catch (e) { toast(e.message); } }, 120); }
+$('#finish').addEventListener('input', e => { ed.finish = +e.target.value; e.target.nextElementSibling.textContent = ed.finish.toFixed(2); draw(); });
+
+/* ---------------- shades */
+$('#b-analyse').addEventListener('click', analyse);
+async function analyse() {
+  $('#b-analyse').disabled = true; $('#b-analyse').textContent = t('sh.analysing');
+  try { shade.info = await (await api('/api/shades')).json(); renderShades(); }
+  catch (e) { toast(e.message); } finally { $('#b-analyse').disabled = false; $('#b-analyse').dataset.i18n = 'sh.reanalyse'; $('#b-analyse').textContent = t('sh.reanalyse'); }
+}
+function renderShades() {
+  const I = shade.info, R = I.report; $('#shade-ui').style.display = ''; $('#shade-empty').style.display = 'none';
+  $('#report').innerHTML = `<span class="k">${t('rep.skin')}</span><span><i style="background:${R.skin_hex}"></i>${t('rep.undertone', { ut: t('ut.' + R.undertone) })} · ITA ${R.ita}°</span>
+    <span class="k">${t('rep.lips')}</span><span><i style="background:${R.lip_hex}"></i>${R.lip_hex}</span><span class="k">${t('rep.light')}</span><span>${t('light.' + R.light)}${R.light_reliable ? '' : t('rep.low')}</span>`;
+  const rec = I.recommended, lipRole = Object.fromEntries(Object.entries(rec.lipsticks).map(([r, id]) => [id, r]));
+  const sw = (cat, star, label) => {
+    const list = I.library.filter(s => s.category === cat);
+    const ordered = cat === 'foundation' ? [...rec.foundations.map(id => list.find(s => s.id === id)), ...list.filter(s => !rec.foundations.includes(s.id))].slice(0, 10) : list;
+    $('#sw-' + cat).innerHTML = `<div class="swc none ${!shade[cat] ? 'on' : ''}" data-id=""><i></i><span>${t('sh.none')}</span></div>` + ordered.map(s =>
+      `<div class="swc ${shade[cat] === s.id ? 'on' : ''}" data-id="${s.id}" title="${shadeName(s)}"><i style="background:${s.hex}"></i>${star(s) ? '<em>★</em>' : ''}<span>${label(s)}</span></div>`).join('');
+    $$('#sw-' + cat + ' .swc').forEach(el => el.addEventListener('click', () => { shade[cat] = el.dataset.id || null; renderShades(); sendShades(); }));
+  };
+  sw('foundation', s => s.id === rec.foundations[0], s => t('depth.' + s.depth));
+  sw('blush', s => s.id === rec.blush, s => shadeName(s));
+  sw('lipstick', s => s.id in lipRole, s => lipRole[s.id] ? t('role.' + lipRole[s.id]) : shadeName(s));
+  const pills = (cat, opts) => { $('#fin-' + cat).innerHTML = opts.map(o => `<button class="pill ${shade.finish[cat] === o ? 'on' : ''}" data-f="${o}">${t('finish.' + o)}</button>`).join('');
+    $$('#fin-' + cat + ' .pill').forEach(b => b.addEventListener('click', () => { shade.finish[cat] = b.dataset.f; renderShades(); sendShades(); })); };
+  pills('foundation', ['matte', 'satin', 'dewy']); pills('lipstick', ['matte', 'satin', 'sheer', 'gloss']);
+}
+['foundation', 'blush', 'lipstick'].forEach(c => $('#st-' + c).addEventListener('input', e => { shade.strength[c] = +e.target.value; e.target.nextElementSibling.textContent = (+e.target.value).toFixed(2); sendShades(); }));
+let shT; function sendShades() { clearTimeout(shT); shT = setTimeout(async () => { try { setState(await post('/api/shades', shadeSpec())); } catch (e) { toast(e.message); } }, 120); }
+function shadeSpec() { return { foundation: shade.foundation, blush: shade.blush, lipstick: shade.lipstick, strength: shade.strength, finish: shade.finish }; }
+
+/* ---------------- looks: keep, stack, blend */
+function edits() {
+  return { strength: ed.strength, part_strength: ed.ps.map((s, k) => s * stepMask()[k]),
+    recolour: Object.fromEntries(PARTS.map((p, k) => [p, hexLab(ed.recHex[k])]).filter((x, k) => ed.rec[k])),
+    hue: Object.fromEntries(PARTS.map((p, k) => [p, ed.hue[k]]).filter((x, k) => ed.hue[k])),
+    soft: ed.soft, finish: ed.finish ? { lips: ed.finish } : {} };
+}
+$('#b-keep').addEventListener('click', async () => {
+  try { setState(await post('/api/keep', { edits: edits() })); sendStack(); toast(t('toast.kept')); }
+  catch (e) { toast(e.message); }
+});
+$('#showwork').addEventListener('input', e => { ed.showWork = e.target.checked; draw(); });
+function renderLooks() {
+  const L = state.looks || []; const byId = Object.fromEntries(L.map(l => [l.id, l]));
+  stack.order = stack.order.filter(id => byId[id]);
+  L.forEach(l => { if (!stack.order.includes(l.id)) { stack.order.push(l.id); stack.visible[l.id] = true; stack.strength[l.id] = 1; } });
+  if (!L.length) { $('#looklist').textContent = t('looks.empty'); $('#blendbox').style.display = 'none'; return; }
+  $('#looklist').innerHTML = [...stack.order].reverse().map(id => `
+    <div class="look" data-id="${id}"><img src="/api/img/look_${id}.png?v=${state.versions.looks}">
+      <div><div class="row" style="justify-content:space-between"><span class="nm">${t('look.name', { n: id })}</span><label class="sw"><input type="checkbox" class="vis" ${stack.visible[id] !== false ? 'checked' : ''}><span></span></label></div>
+        <input type="range" class="ls" min="0" max="1.5" step="0.01" value="${stack.strength[id] ?? 1}"></div>
+      <div class="ops"><button class="mvup" title="${t('move.up')}">▲</button><button class="dn" title="${t('move.down')}">▼</button></div></div>`).join('');
+  $$('.look').forEach(el => {
+    const id = +el.dataset.id;
+    el.querySelector('.vis').addEventListener('input', e => { stack.visible[id] = e.target.checked; sendStack(); });
+    el.querySelector('.ls').addEventListener('input', e => { stack.strength[id] = +e.target.value; sendStack(); });
+    el.querySelector('.mvup').addEventListener('click', () => move(id, 1)); el.querySelector('.dn').addEventListener('click', () => move(id, -1));
+  });
+  $$('#looklist input[type=range]').forEach(fill);
+  $('#blendbox').style.display = L.length >= 2 ? '' : 'none';
+  const ca = $('#bl-a').value, cb = $('#bl-b').value, opts = L.map(l => `<option value="${l.id}">${t('look.name', { n: l.id })}</option>`).join('');
+  $('#bl-a').innerHTML = opts; $('#bl-b').innerHTML = opts;
+  $('#bl-a').value = ca && byId[ca] ? ca : L[0].id; $('#bl-b').value = cb && byId[cb] && cb !== $('#bl-a').value ? cb : L[L.length - 1].id;
+}
+function move(id, d) { const i = stack.order.indexOf(id), j = i + d; if (j < 0 || j >= stack.order.length) return; [stack.order[i], stack.order[j]] = [stack.order[j], stack.order[i]]; renderLooks(); sendStack(); }
+['#bl-a', '#bl-b', '#bl-on', '#bl-t'].forEach(s => $(s).addEventListener('input', () => { $('#bl-t').nextElementSibling.textContent = (+$('#bl-t').value).toFixed(2); sendStack(); }));
+let stT; function sendStack() {
+  stack.blend = $('#bl-on').checked ? { a: +$('#bl-a').value, b: +$('#bl-b').value, t: +$('#bl-t').value } : null;
+  clearTimeout(stT); stT = setTimeout(async () => { try { setState(await post('/api/stack', stack)); } catch (e) { toast(e.message); } }, 80);
+}
+
+/* ---------------- steps */
+function setStep(n) { ed.step = n; $('#step').value = n; fill($('#step')); $$('#steplbl span').forEach((s, i) => s.classList.toggle('on', i === n)); draw(); }
+$('#step').addEventListener('input', e => setStep(+e.target.value));
+let playing = null;
+$('#b-play').addEventListener('click', () => {
+  if (playing) { clearInterval(playing); playing = null; $('#b-play').textContent = t('steps.play'); return; }
+  let n = 0; setStep(0); $('#b-play').textContent = t('steps.stop');
+  playing = setInterval(() => { n++; setStep(n); if (n >= 5) { clearInterval(playing); playing = null; $('#b-play').textContent = t('steps.play'); } }, 900);
+});
+
+/* ---------------- suggest: look recommendation */
+let recWhich = 'examples';
+$$('#recwhich button').forEach(b => b.addEventListener('click', () => { recWhich = b.dataset.w; $$('#recwhich button').forEach(x => x.classList.toggle('on', x === b)); }));
+$('#b-recommend').addEventListener('click', async () => { try { setState(await post('/api/recommend', { which: recWhich })); poll(); } catch (e) { toast(e.message); } });
+$('#b-stylist').addEventListener('click', async () => { try { setState(await post('/api/stylist', { n: 6, lang: LANG })); poll(); } catch (e) { toast(e.message); } });
+function renderRec() {
+  const R = (state.rec || []).filter(r => r.score !== undefined), bad = (state.rec || []).filter(r => r.error);
+  $('#b-stylist').style.display = state.stylist && R.length >= 2 ? '' : 'none';
+  $('#stylistbox').innerHTML = state.vlm ? `<div class="stylist"><b>${t('sug.picks')}</b>${state.vlm.map((v, k) => `<div style="margin-top:4px">${k + 1}. <b>${v.name}</b> — ${v.reason}</div>`).join('')}</div>` : '';
+  const pct = x => Math.max(4, Math.min(100, x * 100)).toFixed(0);
+  const aes = R.map(r => r.aesthetic), lo = Math.min(...aes), hi = Math.max(...aes);
+  $('#reclist').innerHTML = R.map((r, k) => `
+    <div class="reccard" data-i="${r.i}">${k < 3 ? `<span class="medal">${k + 1}</span>` : ''}<img src="/api/img/rec_${r.i}.png?v=${state.versions.rec}">
+      <div><div class="nm"><span>${r.name}</span><b>${r.score.toFixed(0)}</b></div>
+        <div class="bars"><span>${t('sug.aesthetic')}</span><span class="bar"><i style="width:${pct((r.aesthetic - lo) / Math.max(hi - lo, 1e-6))}%"></i></span>
+          <span>${t('sug.harmony')}</span><span class="bar"><i style="width:${pct(r.harmony)}%"></i></span></div>
+        <div class="why">${(r.reasons || []).map(reason).join(' · ')}</div></div></div>`).join('') + (bad.length ? `<div class="muted">${t('sug.failed', { n: bad.length })}</div>` : '');
+  $$('.reccard').forEach(el => el.addEventListener('click', async () => {
+    try { setState(await post('/api/use_rec', { i: +el.dataset.i })); setMode('whole'); refreshThumbs(); toast(t('toast.selected')); } catch (e) { toast(e.message); }
+  }));
+}
+
+/* ---------------- shade comparison sheet */
+$$('.cmp').forEach(b => b.addEventListener('click', () => openSheet(b.dataset.c)));
+$('#sheet-close').addEventListener('click', closeSheet);
+let sheetData = null;
+function note(n) {                                     // structured card note -> sentence
+  const k = n.k;
+  if (k === 'harmony') return reason(n);
+  if (k === 'finish') return t('n.finish.' + n.f);
+  if (k === 'l_role') return t('n.l_role.' + n.role);
+  if (k === 'contrast') return t('n.contrast.' + (n.strong ? 'strong' : 'soft'));
+  return cap(t('n.' + k, { dE: n.dE, ut: t('ut.' + n.ut), colour: t('colour.' + n.colour) }));
+}
+function suits(x) { return x.k === 'l_suits' ? t('s.l_suits.' + x.role) : t('s.' + x.k, { ut: t('ut.' + x.ut) }); }
+function sub(x) { return x.k === 'depth_ut' ? `${t('depth.' + x.depth)} · ${t('utname.' + x.ut)}` : x.k === 'role' ? t('role.' + x.role) : t('colour.' + x.colour); }
+function renderSheet() {
+  const { cat, d } = sheetData;
+  $('#sheet-title').textContent = t('sheet.' + cat);
+  $('#sheet-cards').innerHTML = d.cards.map(c => `
+    <div class="scard ${c.best ? 'best' : ''}" data-id="${c.id}"><img src="${c.face}">
+      <div class="hd"><div class="t"><i style="background:${c.hex}"></i>${shadeName(c)}${c.best ? ' <span class="crown">♛</span>' : ''}</div><div class="s">${sub(c.sub)}</div><div class="u">${suits(c.suits)}</div></div>
+      <img src="${c.zoom}"><ul>${c.notes.map(n => `<li>${note(n)}</li>`).join('')}</ul></div>`).join('');
+  const best = d.cards.find(c => c.best), o = d.overall;
+  $('#sheet-overall').innerHTML = `<b>${t('sheet.pick', { name: best ? shadeName(best) : '–' })}</b><span>${t('o.' + o.cat, { ut: t('ut.' + o.ut), ita: o.ita, best: best ? shadeName(best) : o.best })}</span>`;
+  $$('.scard').forEach(el => el.addEventListener('click', () => { shade[cat] = el.dataset.id; if (shade.info) renderShades(); sendShades(); closeSheet(); toast(t('toast.applied', { name: el.querySelector('.t').textContent.replace('♛', '').trim() })); }));
+}
+function closeSheet() { $('#sheet').classList.remove('on'); sheetData = null; }
+async function openSheet(cat) {
+  $('#sheet-title').textContent = t('sheet.' + cat);
+  $('#sheet-cards').innerHTML = `<div class="muted" style="padding:20px">${t('sheet.composing')}</div>`; $('#sheet-overall').innerHTML = ''; $('#sheet').classList.add('on');
+  try { sheetData = { cat, d: await post('/api/compare', { cat, edits: res ? edits() : {}, shades: shadeSpec() }) }; renderSheet(); }
+  catch (e) { $('#sheet-cards').innerHTML = `<div class="muted" style="padding:20px">${e.message}</div>`; }
+}
+
+/* ---------------- reset, export */
+$('#b-reset').addEventListener('click', () => {
+  Object.assign(ed, { strength: 1, ps: [1, 1, 1, 1, 1], hue: [0, 0, 0, 0, 0], rec: [0, 0, 0, 0, 0], finish: 0, soft: { eyes: 0, lips: 0, face: 0 } });
+  $('#strength').value = 1; $('#o-strength').textContent = '1.00'; $('#finish').value = 0; $('#finish').nextElementSibling.textContent = '0.00';
+  ['eyes', 'lips', 'face'].forEach(p => { $('#soft-' + p).value = 0; $('#soft-' + p).nextElementSibling.textContent = '0.0'; });
+  buildParts(); setStep(5); sendSoft();
+});
+$('#b-export').addEventListener('click', async () => {
+  try {
+    const r = await api('/api/export', { method: 'POST', body: JSON.stringify({ edits: edits(), stack: flags.S ? stack : null, shades: (flags.U || flags.L) ? shadeSpec() : null, show_work: ed.showWork }) });
+    const url = URL.createObjectURL(await r.blob()), a = document.createElement('a'); a.href = url; a.download = 'irismix.png'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(t('toast.saved', { d: r.headers.get('X-Saved-To') }), 4000);
+  } catch (e) { toast(t('toast.export_failed', { e: e.message })); }
+});
+
+/* ---------------- views, zoom / pan, compare */
+function setView(v, quiet) { view = v; $$('.tab[data-v]').forEach(t => t.classList.toggle('on', +t.dataset.v === v)); if (!quiet) draw(); }
+$$('.tab[data-v]').forEach(t => t.addEventListener('click', () => { if (!t.disabled) { setView(+t.dataset.v); } }));
+const vw = $('#view'), stage = $('#stage'); let z = 1, tx = 0, ty = 0;
+function apply() { stage.style.transform = `translate(${tx}px,${ty}px) scale(${z})`; $('#s-zoom').textContent = (z * 100).toFixed(0) + '%'; placeWipe(); }
+function fit() { if (!photo) return; const r = vw.getBoundingClientRect(), m = 70; z = Math.min((r.width - m) / cv.width, (r.height - m) / cv.height, 4); tx = (r.width - cv.width * z) / 2; ty = (r.height - cv.height * z) / 2 + 12; apply(); }
+function zoomAt(f, mx, my) { const nz = Math.min(Math.max(z * f, .05), 16); tx = mx - (mx - tx) * nz / z; ty = my - (my - ty) * nz / z; z = nz; apply(); }
+vw.addEventListener('wheel', e => { e.preventDefault(); if (!photo) return; const r = vw.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * .0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+$('#z-in').addEventListener('click', () => { const r = vw.getBoundingClientRect(); zoomAt(1.25, r.width / 2, r.height / 2); });
+$('#z-out').addEventListener('click', () => { const r = vw.getBoundingClientRect(); zoomAt(.8, r.width / 2, r.height / 2); });
+let drag = null, wdrag = false;
+vw.addEventListener('mousedown', e => { if (e.target.id === 'wipe') return; drag = { x: e.clientX - tx, y: e.clientY - ty }; vw.classList.add('panning'); });
+window.addEventListener('mousemove', e => {
+  if (drag) { tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); }
+  if (wdrag) { const r = cv.getBoundingClientRect(); wipe = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1); placeWipe(); draw(); }
+  if (photo) { const r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * cv.width), y = Math.floor((e.clientY - r.top) / r.height * cv.height);
+    $('#s-pix').textContent = x >= 0 && y >= 0 && x < cv.width && y < cv.height ? `px ${x}, ${y}` : ''; }
+});
+window.addEventListener('mouseup', () => { drag = null; wdrag = false; vw.classList.remove('panning'); });
+vw.addEventListener('dblclick', fit); window.addEventListener('resize', fit);
+$('#wipe').addEventListener('mousedown', e => { e.stopPropagation(); wdrag = true; });
+function placeWipe() { const w = $('#wipe'); w.style.display = compare && res ? 'block' : 'none'; w.style.left = (wipe * cv.width) + 'px'; w.style.transform = `scaleX(${1 / z})`; }
+function toggleCompare() { compare = !compare; $('#b-compare').classList.toggle('on', compare); placeWipe(); draw(); }
+$('#b-compare').addEventListener('click', toggleCompare); $('#b-fit').addEventListener('click', fit);
+window.addEventListener('keydown', e => {
+  if (tourOn || e.target.tagName === 'SELECT' || (e.target.tagName === 'INPUT' && !['range', 'checkbox'].includes(e.target.type))) return;
+  const k = e.key.toLowerCase();
+  if (k.length === 1 && '123456'.includes(k)) { const t = $(`.tab[data-v="${+k - 1}"]`); if (t && !t.disabled) setView(+k - 1); }
+  else if (k === 'c') toggleCompare(); else if (k === 'f') fit();
+  else if (k === 't' && !$('#b-warp').disabled) run(false); else if (k === 'r' && !$('#b-render').disabled) run(true);
+});
+
+/* ---------------- guided tour */
+const TOUR = [null, '#card-photo', '#card-look', '#card-examples', '#card-run', '#main', ['#editcard', 'adjust'], ['#editcard', 'shades'],
+  ['#editcard', 'suggest'], ['#editcard', 'looks'], '#card-export'];
+let tourOn = false, tourI = 0;
+function openTab(p) { const b = $(`#etabs button[data-p="${p}"]`); if (b) b.click(); }
+function showTour() {
+  const step = TOUR[tourI], hole = $('#tour-hole'), card = $('#tour-card'), W = innerWidth, H = innerHeight, cw = 340;
+  $('#tour-step').textContent = `${tourI + 1} / ${TOUR.length}`;
+  $('#tour-title').textContent = t(`tour.${tourI}.t`); $('#tour-body').textContent = t(`tour.${tourI}.b`);
+  $('#tour-prev').style.visibility = tourI ? 'visible' : 'hidden';
+  $('#tour-next').textContent = t(tourI === TOUR.length - 1 ? 'tour.done' : 'tour.next');
+  if (!step) {                                         // welcome: centred card, no highlight
+    Object.assign(hole.style, { left: W / 2 + 'px', top: H / 2 + 'px', width: '0px', height: '0px' });
+    Object.assign(card.style, { left: (W - cw) / 2 + 'px', top: (H / 2 - 110) + 'px' }); return;
+  }
+  const [sel, tab] = Array.isArray(step) ? step : [step, null];
+  if (tab) openTab(tab);
+  const el = $(sel); el.scrollIntoView({ block: 'nearest' });
+  const r = el.getBoundingClientRect(), pad = 6;
+  Object.assign(hole.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + 2 * pad + 'px', height: r.height + 2 * pad + 'px' });
+  let x = r.right + 18, y = Math.max(16, Math.min(r.top, H - 260));
+  if (x + cw > W - 16) x = r.left - cw - 18;                          // right column: card on the left
+  if (x < 16) { x = Math.max(16, Math.min(r.left + r.width / 2 - cw / 2, W - cw - 16)); y = Math.min(r.top + 70, H - 260); }   // centre
+  Object.assign(card.style, { left: x + 'px', top: y + 'px' });
+}
+function startTour() { tourOn = true; tourI = 0; $('#tour').classList.add('on'); showTour(); }
+function endTour() { tourOn = false; $('#tour').classList.remove('on'); openTab('adjust'); try { localStorage.setItem('irismix.toured', '1'); } catch (e) {} }
+$('#b-guide').addEventListener('click', startTour);
+$('#b-free').addEventListener('click', async () => {
+  try { const b = state.mem || {}; setState(await post('/api/free')); const a = state.mem || {};
+    toast(t('toast.freed', { ram: a.ram ?? '–', gpu: a.gpu_reserved ?? 0, was: b.ram ?? '–' })); } catch (e) { toast(e.message); }
+});
+setInterval(async () => { if (!polling && !document.hidden) { try { setState(await (await api('/api/state')).json()); } catch (e) {} } }, 5000);   // live memory readout
+$('#tour-skip').addEventListener('click', endTour);
+$('#tour-prev').addEventListener('click', () => { if (tourI > 0) { tourI--; showTour(); } });
+$('#tour-next').addEventListener('click', () => { if (tourI < TOUR.length - 1) { tourI++; showTour(); } else endTour(); });
+window.addEventListener('resize', () => { if (tourOn) showTour(); });
+window.addEventListener('keydown', e => { if (tourOn && e.key === 'Escape') endTour(); });
+
+/* ---------------- start: the first example face and look are preselected */
+$$('input[type=range]').forEach(fill); setStep(5); needResult(true); applyI18n();
+(async () => {
+  await loadExamples();
+  const st = await (await api('/api/state')).json(); setState(st); refreshThumbs();
+  if (!st.inputs.source) { const s = examples.find(e => e.kind === 'source'); if (s) await upload('source', await (await fetch(s.url)).blob(), true); }
+  if (!['whole', 'eyes', 'lips', 'face', 'forehead'].some(s => state.inputs[s])) { const r = examples.find(e => e.kind === 'reference'); if (r) await upload('whole', await (await fetch(r.url)).blob(), true); }
+  if (st.options) { setMode(Object.keys(st.inputs).some(s => ['eyes', 'lips', 'face', 'forehead'].includes(s) && st.inputs[s]) ? 'parts' : 'whole'); }
+  selectSlot('whole'); if (state.busy) poll();
+  let toured = false; try { toured = !!localStorage.getItem('irismix.toured'); } catch (e) {}
+  if (!toured) startTour();                            // first visit: show the guide once
+})();
+</script>
+</body>
+</html>

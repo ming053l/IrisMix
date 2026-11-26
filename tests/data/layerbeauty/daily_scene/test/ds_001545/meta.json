@@ -1,0 +1,123 @@
+{
+ "id": "ds_001545",
+ "person": {
+  "identity_group": "51bd27ac81ea",
+  "region": "east_asia"
+ },
+ "design": {
+  "part_descriptions": {
+   "eyes": [
+    "a sheer muted-rose eyeshadow",
+    "thin brown liner"
+   ],
+   "lips": [
+    "a rose-beige lipstick"
+   ],
+   "cheeks": []
+  },
+  "description": "Makeup, neat: a satin base, a sheer muted-rose eyeshadow, thin brown liner and a rose-beige lipstick; natural skin tone, no blush."
+ },
+ "generation": {
+  "prompt": "Chest-up candid photo of a 36-year-old Japanese adult woman pushing a book cart in a library and looking up with a quiet smile, taken by a colleague from about 1.2 metres at eye level, light wearable makeup, no text, no readable book spines. Behind her tall wooden bookshelves, a window streaked with rain and a reading table blur softly. It is a rainy afternoon; soft grey window light lights her face gently, with a warm glow from a reading lamp. She is a librarian re-shelving books; her hands rest on the cart handle at waist height. Her face is an oval face with lean cheeks, large round eyes with slightly droopy puppy eyes, thick soft brows, a small button nose and thin lips, attractive in her own way; her skin is smooth with fine pores. Expression: a quiet smile, lips closed, eyes softly narrowed at the lens, brows relaxed. Her shoulders are soft. Her dark brown shoulder-length hair is tucked behind her ears. She wears a moss green cardigan over a cream blouse. Bare face: she wears no makeup at all - no foundation, no concealer, no lipstick or lip tint, no eyeshadow, no eyeliner, no mascara, no blush; her lips are their own natural soft colour, her brows natural and unfilled, her lashes natural, natural skin texture with visible pores. The image feels hushed and content. Photorealistic, one adult East Asian woman, completely bare makeup-free face; no red spots, no face jewels or stickers, no text, watermark, logos or readable signs.",
+  "seed": 600110
+ },
+ "layer_info": {
+  "box": [
+   284,
+   213,
+   558,
+   487
+  ],
+  "pigments": {
+   "lips": {
+    "pigment_lab": [
+     60.345458984375,
+     27.109375,
+     24.625
+    ],
+    "pigment_rgb": [
+     0.7931026220321655,
+     0.49580276012420654,
+     0.40800952911376953
+    ],
+    "intensity": {
+     "mean_alpha": 0.3669029474258423,
+     "p95_alpha": 0.501960813999176,
+     "area_px": 1488
+    }
+   },
+   "brows": {
+    "pigment_lab": [
+     31.903076171875,
+     15.921875,
+     9.25
+    ],
+    "pigment_rgb": [
+     0.40539756417274475,
+     0.25703561305999756,
+     0.24181902408599854
+    ],
+    "intensity": {
+     "mean_alpha": 0.07040651887655258,
+     "p95_alpha": 0.17686274945735897,
+     "area_px": 599
+    }
+   },
+   "eyeshadow": {
+    "pigment_lab": [
+     41.851806640625,
+     24.71875,
+     20.546875
+    ],
+    "pigment_rgb": [
+     0.569368839263916,
+     0.32190844416618347,
+     0.26004335284233093
+    ],
+    "intensity": {
+     "mean_alpha": 0.07323066890239716,
+     "p95_alpha": 0.14960784912109365,
+     "area_px": 113
+    }
+   },
+   "liner": {
+    "pigment_lab": [
+     7.623291015625,
+     10.640625,
+     11.640625
+    ],
+    "pigment_rgb": [
+     0.15987297892570496,
+     0.06567175686359406,
+     0.0
+    ],
+    "intensity": {
+     "mean_alpha": 0.17859208583831787,
+     "p95_alpha": 0.36843138039112083,
+     "area_px": 50
+    }
+   },
+   "cheeks": null,
+   "socket": {
+    "pigment_lab": [
+     51.2939453125,
+     13.40625,
+     19.484375
+    ],
+    "pigment_rgb": [
+     0.60836261510849,
+     0.44436684250831604,
+     0.3532582223415375
+    ],
+    "intensity": {
+     "mean_alpha": 0.07988838106393814,
+     "p95_alpha": 0.19607843458652496,
+     "area_px": 960
+    }
+   },
+   "undereye": null
+  },
+  "lip_strength": "medium"
+ },
+ "sample_weight": 1.0
+}

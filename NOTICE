@@ -1,0 +1,22 @@
+IrisMix
+Copyright 2026 The IrisMix Authors
+
+The source code in this repository is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The released IrisMix weights (weights/*.safetensors) are LoRA adapters and skip-connection weights for the FLUX.2 [klein]
+4B model. Their licence is set separately in weights/README.md.
+
+Third-party models and software used by this code. They are NOT redistributed in this repository; they are downloaded
+from their original sources on first use and remain under their own licences:
+
+1. FLUX.2 [klein] 4B (black-forest-labs/FLUX.2-klein-4B) - Black Forest Labs, Apache License 2.0.
+   Base diffusion transformer, VAE and Qwen3 text encoder of both models.
+
+2. Face parsing model jonathandinu/face-parsing (SegFormer, CelebAMask-HQ labels), revision
+   758b82e15a0178c9db39c1ff666a8b56e3a550c8 (pinned in irismix/config.py).
+   Licence stated on its model card: non-commercial research and educational use only.
+   It is required at inference time (transfer rules, renderer conditions, layer recovery). As a consequence the
+   pipeline as shipped may only be used for non-commercial research and education unless the parser is replaced.
+
+3. MediaPipe Face Landmarker (face_landmarker.task) - Google, Apache License 2.0. Downloaded from the MediaPipe model
+   bucket into the cache directory (irismix/config.py: LANDMARKER_URL).

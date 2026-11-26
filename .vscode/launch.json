@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "IrisMix Studio",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/viewer.py",
+      "args": ["--port", "7007"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "serverReadyAction": {"pattern": "local +(http://localhost:[0-9]+)", "uriFormat": "%s", "action": "openExternally"}
+    },
+    {
+      "name": "IrisMix Studio (keep models on the GPU)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/viewer.py",
+      "args": ["--port", "7007", "--keep_models"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "serverReadyAction": {"pattern": "local +(http://localhost:[0-9]+)", "uriFormat": "%s", "action": "openExternally"}
+    }
+  ]
+}

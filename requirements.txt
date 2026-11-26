@@ -1,0 +1,14 @@
+# inference (tested versions in comments; Python 3.10, CUDA 12.8)
+# install torch first from the matching index, e.g.
+#   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+numpy>=1.26            # 2.2.6
+opencv-python-headless>=4.9   # 5.0.0.93
+pillow>=10.0           # 12.3.0
+scipy>=1.11            # 1.15.3
+torch>=2.4             # 2.7.1
+transformers>=4.56     # 5.3.0
+diffusers>=0.37.0,<0.38  # 0.37.0 (Flux2KleinPipeline; flux.py and renderer.py use its private latent helpers)
+peft>=0.17             # 0.18.1 (diffusers load_lora_weights)
+accelerate>=1.0        # 1.13.0 (device_map of the optional stylist)
+safetensors>=0.4       # 0.8.0
+mediapipe>=0.10.20     # 1.1.1

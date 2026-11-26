@@ -1,0 +1,70 @@
+{
+ "id": "cs_006634",
+ "person": {
+  "identity_group": "b0c0ce05afe1",
+  "gender": "woman",
+  "region": "west",
+  "nationality": "French",
+  "age_prompt": null,
+  "skin_tone_prompt": null,
+  "age_extended": false
+ },
+ "design": {
+  "style_family": "general",
+  "design_id": "d0287",
+  "theme": "Bronze Taotie Geometry",
+  "story": "Ancient bronze vessels bear a stern mirrored beast of spirals and right angles.",
+  "palette": [
+   "oxidised green"
+  ],
+  "intensity": "avant-garde",
+  "asymmetric": false,
+  "parts": [
+   "lips",
+   "eyes",
+   "brows",
+   "face",
+   "forehead"
+  ],
+  "part_descriptions": {
+   "face_art": "Focal point is the eyes: mirrored oxidised-green square spirals frame each eye, the line squaring off the outer corner and stepping out along the brow-bone arc to the temple, reshaping the eye into an angular form; even weight, crisp, symmetric.",
+   "eyes": "eye reshaped by the frame: green line squares the outer corner, lid inside left bare, black lashes",
+   "lips": "bare natural lip, deliberately simple to leave negative space, no liner, letting the graphic carry the look",
+   "brows": "natural, combed flat",
+   "cheeks": "clean luminous skin",
+   "decor": ""
+  }
+ },
+ "generation": {
+  "prompt": "High-fashion runway model, editorial makeup close-up, low angle from below the chin looking up: a 28-year-old French adult woman model, diamond face, hazel eyes, wide flat cheekbones, thick dark straight brows, hooded heavy-lidded eyes; auburn red hair in short tousled waves; a punk and defiant presence, clearly adult model features. Warm grey backdrop, hard top-side light, head tilted back slightly, gaze down the nose into camera, severe deadpan expression, hair scraped back into a tight knot, fine grain. Concept: Bronze Taotie Geometry - Ancient bronze vessels bear a stern mirrored beast of spirals and right angles. Face art: Focal point is the eyes: mirrored oxidised-green square spirals frame each eye, the line squaring off the outer corner and stepping out along the brow-bone arc to the temple, reshaping the eye into an angular form; even weight, crisp, symmetric. Eyes: eye reshaped by the frame: green line squares the outer corner, lid inside left bare, black lashes. Cheeks: clean luminous skin. Lips: bare natural lip, deliberately simple to leave negative space, no liner, letting the graphic carry the look. Brows: natural, combed flat. BOLD and large-scale: big saturated colour fields and thick confident strokes, high-contrast colour, the art covering a large part of the face; The face art is real makeup: matte face paint, cream liner and powder pigment painted by hand directly on the skin, visible brush strokes and slightly soft hand-painted edges, the skin texture and pores showing through the pigment; NOT glossy, NOT plastic, NOT a vector graphic, NOT 3D, NOT a sticker, decal or transfer tattoo; no props held to the face; hands, hair and the frame edge never hide the face art; a complete matching eye makeup and a defined lip in the same colour story. Professional makeup artistry, crisp hand-painted lines, a designed composition with negative space, the rest of the skin clean and luminous with real texture and visible pores, sharp focus, no text, no watermark.",
+  "photo": "Warm grey backdrop, hard top-side light, head tilted back slightly, gaze down the nose into camera, severe deadpan expression, hair scraped back into a tight knot, fine grain.",
+  "removal_prompts": [
+   "Remove all makeup and face paint from her face: erase every painted line, motif, gem, eyeliner, eyeshadow, mascara, lipstick and blush, leaving her natural bare skin, natural lip colour and natural brows. Keep her natural skin tone, skin colour and complexion exactly the same: do not lighten, brighten, whiten or even out the skin. Keep her identity, expression, hair, pose, framing, lighting and background exactly the same.",
+   "Remove any remaining eye makeup: erase eyeliner, winged liner, eyeshadow, glitter and mascara, leaving bare natural eyelids and natural lashes. Change nothing else: keep her face, skin, lips, brows, expression, hair, lighting and background exactly the same."
+  ],
+  "seed": 920500
+ },
+ "layer_info": {
+  "box": [
+   0,
+   0,
+   1024,
+   1024
+  ]
+ },
+ "quality": {
+  "part_coverage": {
+   "lips": 0.0289,
+   "eyes": 0.0288,
+   "brows": 0.0035,
+   "face": 0.0749,
+   "forehead": 0.005
+  },
+  "eye_ratio": null,
+  "face_iou": null,
+  "skin_dL": null,
+  "ita_madeup": null,
+  "ita_bare": null
+ },
+ "sample_weight": 0.081006
+}

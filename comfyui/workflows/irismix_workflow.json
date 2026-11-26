@@ -1,0 +1,920 @@
+{
+ "last_node_id": 18,
+ "last_link_id": 17,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    250,
+    310
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "source-warm.webp",
+    "image"
+   ],
+   "title": "Target photo"
+  },
+  {
+   "id": 2,
+   "type": "IrisMixDecompose",
+   "pos": [
+    280,
+    40
+   ],
+   "size": [
+    250,
+    80
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "photo",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "bare_face",
+     "type": "IMAGE",
+     "links": [
+      2,
+      9
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "makeup_layer",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "layer",
+     "type": "IRISMIX_LAYER",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixDecompose"
+   },
+   "widgets_values": [],
+   "title": "Remove target makeup"
+  },
+  {
+   "id": 3,
+   "type": "PreviewImage",
+   "pos": [
+    560,
+    0
+   ],
+   "size": [
+    240,
+    310
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 2
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Bare face"
+  },
+  {
+   "id": 4,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    330
+   ],
+   "size": [
+    250,
+    310
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "reference-cobalt.webp",
+    "image"
+   ],
+   "title": "Eyes reference"
+  },
+  {
+   "id": 5,
+   "type": "IrisMixDecompose",
+   "pos": [
+    280,
+    370
+   ],
+   "size": [
+    250,
+    80
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "photo",
+     "type": "IMAGE",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "bare_face",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "makeup_layer",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "layer",
+     "type": "IRISMIX_LAYER",
+     "links": [
+      10
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixDecompose"
+   },
+   "widgets_values": [],
+   "title": "Decompose reference"
+  },
+  {
+   "id": 6,
+   "type": "PreviewImage",
+   "pos": [
+    560,
+    330
+   ],
+   "size": [
+    240,
+    310
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Makeup layer"
+  },
+  {
+   "id": 7,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    660
+   ],
+   "size": [
+    250,
+    310
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "reference-merlot.webp",
+    "image"
+   ],
+   "title": "Lips reference"
+  },
+  {
+   "id": 8,
+   "type": "IrisMixDecompose",
+   "pos": [
+    280,
+    700
+   ],
+   "size": [
+    250,
+    80
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "photo",
+     "type": "IMAGE",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "bare_face",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "makeup_layer",
+     "type": "IMAGE",
+     "links": [
+      6
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "layer",
+     "type": "IRISMIX_LAYER",
+     "links": [
+      11
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixDecompose"
+   },
+   "widgets_values": [],
+   "title": "Decompose reference"
+  },
+  {
+   "id": 9,
+   "type": "PreviewImage",
+   "pos": [
+    560,
+    660
+   ],
+   "size": [
+    240,
+    310
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 6
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Makeup layer"
+  },
+  {
+   "id": 10,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    990
+   ],
+   "size": [
+    250,
+    310
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "reference-poppy.webp",
+    "image"
+   ],
+   "title": "Face paint reference"
+  },
+  {
+   "id": 11,
+   "type": "IrisMixDecompose",
+   "pos": [
+    280,
+    1030
+   ],
+   "size": [
+    250,
+    80
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "photo",
+     "type": "IMAGE",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "bare_face",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "makeup_layer",
+     "type": "IMAGE",
+     "links": [
+      8
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "layer",
+     "type": "IRISMIX_LAYER",
+     "links": [
+      12
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixDecompose"
+   },
+   "widgets_values": [],
+   "title": "Decompose reference"
+  },
+  {
+   "id": 12,
+   "type": "PreviewImage",
+   "pos": [
+    560,
+    990
+   ],
+   "size": [
+    240,
+    310
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 8
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Makeup layer"
+  },
+  {
+   "id": 13,
+   "type": "IrisMixCompose",
+   "pos": [
+    850,
+    300
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "target",
+     "type": "IMAGE",
+     "link": 9
+    },
+    {
+     "name": "eyes_from",
+     "type": "IRISMIX_LAYER",
+     "link": 10
+    },
+    {
+     "name": "lips_from",
+     "type": "IRISMIX_LAYER",
+     "link": 11
+    },
+    {
+     "name": "face_from",
+     "type": "IRISMIX_LAYER",
+     "link": 12
+    },
+    {
+     "name": "forehead_from",
+     "type": "IRISMIX_LAYER",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "composite",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "look",
+     "type": "IRISMIX_LOOK",
+     "links": [
+      14
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixCompose"
+   },
+   "widgets_values": [],
+   "title": "Compose by part"
+  },
+  {
+   "id": 14,
+   "type": "PreviewImage",
+   "pos": [
+    850,
+    490
+   ],
+   "size": [
+    440,
+    600
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Composite (warp only)"
+  },
+  {
+   "id": 15,
+   "type": "IrisMixRender",
+   "pos": [
+    1320,
+    300
+   ],
+   "size": [
+    300,
+    90
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "look",
+     "type": "IRISMIX_LOOK",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "rendered",
+     "type": "IMAGE",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "result",
+     "type": "IRISMIX_RESULT",
+     "links": [
+      16
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixRender"
+   },
+   "widgets_values": [
+    0,
+    "fixed"
+   ],
+   "title": "Render (one step)"
+  },
+  {
+   "id": 16,
+   "type": "SaveImage",
+   "pos": [
+    1320,
+    490
+   ],
+   "size": [
+    440,
+    600
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 15
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "irismix/rendered"
+   ],
+   "title": "Rendered"
+  },
+  {
+   "id": 17,
+   "type": "IrisMixEditLayer",
+   "pos": [
+    1820,
+    120
+   ],
+   "size": [
+    440,
+    340
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "result",
+     "type": "IRISMIX_RESULT",
+     "link": 16
+    }
+   ],
+   "outputs": [
+    {
+     "name": "edited",
+     "type": "IMAGE",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "IrisMixEditLayer"
+   },
+   "widgets_values": [
+    1.0,
+    true,
+    true,
+    true,
+    true,
+    "#b0303a",
+    0,
+    -120,
+    0
+   ],
+   "title": "Edit layer (no new render)"
+  },
+  {
+   "id": 18,
+   "type": "SaveImage",
+   "pos": [
+    1820,
+    490
+   ],
+   "size": [
+    440,
+    600
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "irismix/edited"
+   ],
+   "title": "Edited"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "IMAGE"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "IMAGE"
+  ],
+  [
+   3,
+   4,
+   0,
+   5,
+   0,
+   "IMAGE"
+  ],
+  [
+   4,
+   5,
+   1,
+   6,
+   0,
+   "IMAGE"
+  ],
+  [
+   5,
+   7,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   8,
+   1,
+   9,
+   0,
+   "IMAGE"
+  ],
+  [
+   7,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   8,
+   11,
+   1,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   9,
+   2,
+   0,
+   13,
+   0,
+   "IMAGE"
+  ],
+  [
+   10,
+   5,
+   2,
+   13,
+   1,
+   "IRISMIX_LAYER"
+  ],
+  [
+   11,
+   8,
+   2,
+   13,
+   2,
+   "IRISMIX_LAYER"
+  ],
+  [
+   12,
+   11,
+   2,
+   13,
+   3,
+   "IRISMIX_LAYER"
+  ],
+  [
+   13,
+   13,
+   0,
+   14,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   13,
+   1,
+   15,
+   0,
+   "IRISMIX_LOOK"
+  ],
+  [
+   15,
+   15,
+   0,
+   16,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   15,
+   1,
+   17,
+   0,
+   "IRISMIX_RESULT"
+  ],
+  [
+   17,
+   17,
+   0,
+   18,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "Photos",
+   "bounding": [
+    -20,
+    -60,
+    290,
+    1390
+   ],
+   "color": "#3f789e"
+  },
+  {
+   "title": "Decompose",
+   "bounding": [
+    265,
+    -60,
+    545,
+    1390
+   ],
+   "color": "#88aa88"
+  },
+  {
+   "title": "Compose and render",
+   "bounding": [
+    835,
+    140,
+    940,
+    970
+   ],
+   "color": "#b06634"
+  },
+  {
+   "title": "Edit the layer",
+   "bounding": [
+    1805,
+    40,
+    470,
+    1070
+   ],
+   "color": "#a1309b"
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.75,
+   "offset": [
+    60,
+    90
+   ]
+  }
+ },
+ "version": 0.4
+}

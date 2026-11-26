@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "IrisMix Studio",
+      "type": "shell",
+      "command": "python scripts/viewer.py --port 7007",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeBegin": true,
+          "beginsPattern": "IrisMix viewer",
+          "endsPattern": "Ctrl\\+C to stop"
+        }
+      }
+    }
+  ]
+}
