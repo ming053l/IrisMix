@@ -29,6 +29,16 @@ EYES = ([263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 3
         [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246])
 
 
+def shared_editor(dev='cuda', base_model=None, lora_init=None):
+    """the editor without a second copy of the model: the shared base pipeline of the decomposer and the renderer
+    (flux.load_pipeline, text encoder added), run by remove() with its IrisMix LoRA switched off, which computes exactly the
+    plain base model. Saves the 7 GB transformer load and the GPU memory of a second copy."""
+    from irismix import flux
+    pipe = flux.load_pipeline(dev, True, base_model=base_model, lora_init=lora_init)
+    pipe.set_progress_bar_config(disable=True)
+    return pipe
+
+
 def load_editor(dev='cuda', base_model=None, share=None):
     """the base FLUX.2-klein pipeline. share: a loaded pipeline of the same base model (e.g. the renderer's) whose
     text encoder, tokenizer and VAE are reused, so only the plain transformer is loaded again (about 9 GB less)."""
@@ -63,8 +73,13 @@ def remove(pipe, W8, cls, seed=0):
     from PIL import Image
     h, w = W8.shape[:2]
     pipe.text_encoder.to(pipe.transformer.device)            # a shared text encoder may have been parked on the CPU
-    raw = pipe(image=Image.fromarray(W8), prompt=PROMPTS[cls], num_inference_steps=4, guidance_scale=1.0,
-               width=(w // 16) * 16, height=(h // 16) * 16, generator=torch.Generator(pipe.device).manual_seed(seed)).images[0]
+    lora = bool(getattr(pipe.transformer, 'peft_config', None))   # the shared IrisMix pipeline: run the plain base model
+    if lora: pipe.transformer.disable_adapters()
+    try:
+        raw = pipe(image=Image.fromarray(W8), prompt=PROMPTS[cls], num_inference_steps=4, guidance_scale=1.0,
+                   width=(w // 16) * 16, height=(h // 16) * 16, generator=torch.Generator(pipe.device).manual_seed(seed)).images[0]
+    finally:
+        if lora: pipe.transformer.enable_adapters()
     E = np.asarray(raw.resize((w, h), Image.LANCZOS).convert('RGB'))
     la, le = rules.label_map(rules.parse(W8)), rules.label_map(rules.parse(E))
     if cls == 'glasses': R = (la == rules.GLASSES) | (le == rules.GLASSES)

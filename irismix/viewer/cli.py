@@ -22,7 +22,7 @@ def main():
     ap.add_argument('--out', default=os.path.join(config.REPO, 'outputs', 'viewer') if config.IN_CHECKOUT else os.path.join(os.getcwd(), 'irismix_outputs'),
                     help='export directory')
     ap.add_argument('--examples', default=None, help='extra folder of example photos (the bundled assets/examples are always shown)')
-    ap.add_argument('--keep_models', action='store_true', help='keep the decomposer and the renderer on the GPU (about 40 GB)')
+    ap.add_argument('--keep_models', action='store_true', help='keep the per-model weights between stages (slightly faster re-renders, the same GPU memory)')
     ap.add_argument('--idle_release', type=float, default=10, help='minutes without use after which the GPU memory is given back (0: never)')
     ap.add_argument('--no_preload', action='store_true', help='do not start loading the decomposer in the background when a photo is uploaded')
     ap.add_argument('--threads', type=int, default=0, help='CPU threads (default: $IRISMIX_THREADS, else min(8, #cores))')

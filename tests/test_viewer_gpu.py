@@ -2,7 +2,7 @@
 examples, the cached-reference path, design repositioning, occlusion-aware transfer (bangs), re-make-up with kept parts, look
 recommendation and, when IRISMIX_TEST_VLM points to a VLM folder, the stylist. IRISMIX_TEST_GLASSES may point to a photo with
 glasses to cover the glasses path too.
-usage: python -m pytest tests/test_viewer_gpu.py -q -s      (about 24 GB of GPU memory, a few minutes)"""
+usage: python -m pytest tests/test_viewer_gpu.py -q -s      (fits a 24 GB GPU, a few minutes)"""
 import os, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))

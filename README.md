@@ -74,8 +74,9 @@ These are the models reported in the paper. File sizes and sha256 are in [weight
 `IRISMIX_WEIGHTS` or `--decomposer / --renderer / --lora_init` point elsewhere. FLUX.2 [klein] 4B (Apache-2.0) is
 downloaded on first use (`IRISMIX_BASE_MODEL` for a local copy). The face parser (`jonathandinu/face-parsing`, pinned
 revision, non-commercial, see [NOTICE](NOTICE)) and the MediaPipe face landmarker are cached in `~/.cache/irismix`
-(`IRISMIX_CACHE`). One GPU with about 16 GB free is enough: the decomposer and the renderer share one base pipeline, and
-the text encoder stays on the CPU.
+(`IRISMIX_CACHE`). A 24 GB GPU runs everything: the decomposer, the renderer and the glasses / bangs editor share one
+base pipeline, and the 4B text encoder is loaded only for a caption that is not cached yet. Measured peaks: 15.6 GB for a
+render with a new caption, 9.4 GB with a cached one, 18.3 GB with bangs removal.
 
 ## Command line and Python
 

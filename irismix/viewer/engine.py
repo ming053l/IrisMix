@@ -12,8 +12,9 @@ Editing (closed form, also live in the browser): per-part strength, recolour, hu
 in order or blend linearly; shade try-on adds foundation / blush under the look and a lipstick on top.
 
 Decompositions are cached by image content (a reference is decomposed once and reused across photos and looks).
-Models load on first use (or in the background as soon as a photo is uploaded, preload()); keep_models=False (default,
-about 24 GB) holds one network on the GPU at a time. start_idle_release(minutes) gives the GPU memory back after that many
+Models load on first use (or in the background as soon as a photo is uploaded, preload()). The decomposer, the renderer
+and the occluder editor share one base pipeline, so a 24 GB GPU is enough (measured peak 18.3 GB, with bangs removal);
+keep_models only keeps the small per-model weights between stages. start_idle_release(minutes) gives the GPU memory back after that many
 idle minutes; the next render loads the models again."""
 import collections, ctypes, gc, hashlib, sys, threading, time
 import numpy as np, cv2
@@ -161,8 +162,6 @@ class Engine:
         self.last_use = time.time()
         if name not in self.models:
             if not self.keep and self.models: self.models.clear(); self._free_gpu()
-            if name == 'editor' and not self.keep:          # the editor brings its own transformer: drop the shared base
-                from irismix import flux; flux.release_pipelines(); self._free_gpu()
             p = self.paths
             self.say({'s1': 'loading the decomposer', 'rm': 'loading the renderer', 'editor': 'loading the occluder editor'}[name])
             if name == 's1':
@@ -172,9 +171,8 @@ class Engine:
                 from irismix.renderer import Renderer
                 m = Renderer(self.dev, ckpt=p['renderer'], base_model=p['base_model'], lora_init=p['lora_init']); m.skips.eval()
             else:
-                from irismix import occluder as OC
-                rm = self.models.get('rm')                       # share its text encoder and VAE when it is loaded
-                m = OC.load_editor(self.dev, p['base_model'], share=rm.p if rm is not None else None)
+                from irismix import occluder as OC             # the shared base pipeline with the LoRA switched off
+                m = OC.shared_editor(self.dev, p['base_model'], p['lora_init'])
             self.models[name] = m
         return self.models[name]
 

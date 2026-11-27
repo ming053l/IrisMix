@@ -36,4 +36,4 @@ Then drag `workflows/irismix_workflow.json` onto the canvas and press Run. `work
 graph in API format (`POST /prompt`), and `workflows/make_workflow.py` writes both files.
 
 The decomposer and the renderer share one FLUX.2 [klein] base pipeline and the text encoder stays on the CPU, so the
-example runs on a GPU with about 16 GB free (about 25 s, most of it loading the models).
+example runs on a 24 GB GPU (peak about 15.6 GB; about 25 s, most of it loading the models).

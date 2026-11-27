@@ -9,7 +9,7 @@
 
 Outputs in --out: result.png (rendered result), paste.png (warp-only composite), layer.npz (alpha~, F' float16) and
 layer.png (RGBA), edited.png when an edit is given. The decomposer and the renderer share one base pipeline (the weights are
-read once, straight into GPU memory), so a GPU with about 16 GB free is enough. Sampler: config.SIGMA / STEPS / OMEGA_R (0.65, one Euler step, 2 px)."""
+read once, straight into GPU memory); a 24 GB GPU is enough (peak about 15.6 GB, 9.4 GB when the caption is cached). Sampler: config.SIGMA / STEPS / OMEGA_R (0.65, one Euler step, 2 px)."""
 import argparse, gc, os, sys
 
 from irismix import config
