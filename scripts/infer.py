@@ -25,7 +25,7 @@ PARTS = ('eyes', 'lips', 'face', 'forehead')
 def read_rgb(p): return np.asarray(Image.open(p).convert('RGB'))
 
 
-def hex_lab(h):
+def hex_to_lab(h):
     import cv2
     h = h.lstrip('#'); rgb = np.array([[[int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]]], np.float32)
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB)[0, 0]
@@ -61,13 +61,13 @@ def main():
     per_part = {p: getattr(a, p) for p in PARTS if getattr(a, p)}
     if bool(a.ref) == bool(per_part): ap.error('give either --ref or at least one of --eyes / --lips / --face / --forehead')
     try:                                                      # checked before any model is loaded
-        rec, hue = part_edits(a.recolour, hex_lab), part_edits(a.hue, float)
+        rec, hue = part_edits(a.recolour, hex_to_lab), part_edits(a.hue, float)
     except ValueError as e:
         ap.error(str(e))
     os.makedirs(a.out, exist_ok=True)
     import torch
-    from irismix import decomposer as DEC, flux, pipeline as PL, render as RD, layer_recover as LR
-    from irismix.utils import u8
+    from irismix import decomposer as DEC, flux, pipeline as PL, render_steps as RD, layer_recover as LR
+    from irismix.utils import to_uint8
     rules.LMK_FALLBACK = True                                    # in-the-wild photos: low-confidence landmark retry
     S = read_rgb(a.src)
     # group parts by reference file: one decomposition per reference, a reference may supply several parts
@@ -89,7 +89,7 @@ def main():
         C, av, _ = PL.paste(S, refs)
     except ValueError as e:
         sys.exit(f'{a.src}: {e}')
-    Image.fromarray(u8(C)).save(f"{a.out}/paste.png", compress_level=1)
+    Image.fromarray(to_uint8(C)).save(f"{a.out}/paste.png", compress_level=1)
     if a.warp_only: print('warp-only composite ->', f'{a.out}/paste.png'); rules.close_models(); return
 
     # ---- renderer: one-step render inside Omega, masked residual paste-back
@@ -102,18 +102,18 @@ def main():
     torch.cuda.empty_cache() if torch.cuda.is_available() else None
     H5 = RD.render_one(rm, arr, it['text'], sigma=a.sigma, steps=a.steps, seed=a.seed)
     I, _ = RD.compose_full(S, C, H5, info, av)
-    Image.fromarray(u8(I)).save(f'{a.out}/result.png', compress_level=1)   # lossless; level 1 writes ~4x faster
+    Image.fromarray(to_uint8(I)).save(f'{a.out}/result.png', compress_level=1)   # lossless; level 1 writes ~4x faster
 
     # ---- closed-form layer of the render
     at, F = LR.layer_from_render(I, S, it['A'], av)
     LR.save(f'{a.out}/layer.npz', at, F)
-    Image.fromarray(np.dstack([u8(F), u8(at)])).save(f'{a.out}/layer.png', compress_level=1)
+    Image.fromarray(np.dstack([to_uint8(F), to_uint8(at)])).save(f'{a.out}/layer.png', compress_level=1)
     print('caption:', it['text']); print('saved', f'{a.out}/result.png', f'{a.out}/layer.npz')
 
     # ---- optional edits (plain alpha-over of the edited layer on the source)
     if a.strength != 1.0 or a.recolour or a.hue or a.off:
         E, _, _ = PL.apply_edits(at, F, S, PL.part_masks(S), a.strength, a.off, rec, hue)
-        Image.fromarray(u8(E)).save(f'{a.out}/edited.png', compress_level=1); print('saved', f'{a.out}/edited.png')
+        Image.fromarray(to_uint8(E)).save(f'{a.out}/edited.png', compress_level=1); print('saved', f'{a.out}/edited.png')
     rules.close_models()
 
 

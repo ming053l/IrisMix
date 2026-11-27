@@ -22,12 +22,12 @@ PARTS = ('eyes', 'lips', 'face', 'forehead')
 _MODELS = {}
 
 
-def _u8(t):
+def _to_uint8(t):
     """ComfyUI IMAGE (first image of the batch) -> uint8 H x W x 3"""
     return (t[0, ..., :3].clamp(0, 1).cpu().numpy() * 255).round().astype(np.uint8)
 
 
-def _img(a):
+def _to_image_tensor(a):
     a = a.astype(np.float32) / 255 if a.dtype == np.uint8 else a.astype(np.float32)
     return torch.from_numpy(np.ascontiguousarray(np.clip(a, 0, 1)))[None]
 
@@ -61,7 +61,7 @@ def _renderer():
     return _MODELS['renderer']
 
 
-def _hex_lab(h):
+def _hex_to_lab(h):
     import cv2
     h = h.strip().lstrip('#')
     if len(h) != 6: raise ValueError(f'IrisMix: color {h!r} is not #RRGGBB')
@@ -82,10 +82,10 @@ class IrisMixDecompose:
 
     def run(self, photo):
         from irismix import pipeline as PL
-        G = _u8(photo)
+        G = _to_uint8(photo)
         with torch.no_grad(): L = PL.decompose(_decomposer(), G)
         if 'error' in L: raise ValueError(f"IrisMix: {L['error']} (a tighter crop around the face usually helps)")
-        return (_img(L['Br']), _img(_checker(L['a'], L['F'])), L)
+        return (_to_image_tensor(L['Br']), _to_image_tensor(_checker(L['a'], L['F'])), L)
 
 
 class IrisMixCompose:
@@ -102,7 +102,7 @@ class IrisMixCompose:
 
     def run(self, target, **refs):
         from irismix import pipeline as PL
-        S = _u8(target)
+        S = _to_uint8(target)
         groups = {}                                                     # one reference may supply several parts
         for p in PARTS:
             L = refs.get(f'{p}_from')
@@ -110,7 +110,7 @@ class IrisMixCompose:
         if not groups: raise ValueError('IrisMix: connect at least one reference layer (eyes_from, lips_from, face_from or forehead_from)')
         rl = [dict(layer=L, parts=ps) for L, ps in groups.values()]
         C, av, _ = PL.paste(S, rl)
-        return (_img(C), dict(S=S, refs=rl, C=C, av=av))
+        return (_to_image_tensor(C), dict(S=S, refs=rl, C=C, av=av))
 
 
 class IrisMixRender:
@@ -126,7 +126,7 @@ class IrisMixRender:
         return {'required': {'look': ('IRISMIX_LOOK',), 'seed': ('INT', {'default': config.SEED, 'min': 0, 'max': 2 ** 31 - 1})}}
 
     def run(self, look, seed):
-        from irismix import config, pipeline as PL, render as RD, layer_recover as LR
+        from irismix import config, pipeline as PL, render_steps as RD, layer_recover as LR
         S, C, av = look['S'], look['C'], look['av']
         it = PL.look_item(S, look['refs'], C, av)
         arr, info = RD.prepare(it)
@@ -137,7 +137,7 @@ class IrisMixRender:
         H5 = RD.render_one(rm, arr, it['text'], sigma=config.SIGMA, steps=config.STEPS, seed=seed)
         I, _ = RD.compose_full(S, C, H5, info, av)
         at, F = LR.layer_from_render(I, S, it['A'], av)
-        return (_img(I), dict(S=S, at=at, F=F))
+        return (_to_image_tensor(I), dict(S=S, at=at, F=F))
 
 
 class IrisMixEditLayer:
@@ -159,10 +159,10 @@ class IrisMixEditLayer:
         from irismix import pipeline as PL
         S, at, F = result['S'], result['at'], result['F']
         off = [p for p, on in (('eyes', eyes), ('lips', lips), ('face', face), ('forehead', forehead)) if not on]
-        rec = {'lips': _hex_lab(lip_color)} if lip_color.strip() else None
+        rec = {'lips': _hex_to_lab(lip_color)} if lip_color.strip() else None
         hue = {p: d for p, d in (('eyes', eyes_hue), ('face', face_hue), ('forehead', forehead_hue)) if d}
         E, _, _ = PL.apply_edits(at, F, S, PL.part_masks(S), strength, off, rec, hue or None)
-        return (_img(E),)
+        return (_to_image_tensor(E),)
 
 
 NODE_CLASS_MAPPINGS = {'IrisMixDecompose': IrisMixDecompose, 'IrisMixCompose': IrisMixCompose, 'IrisMixRender': IrisMixRender,

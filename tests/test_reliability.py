@@ -20,7 +20,7 @@ def test_shade_library_is_bundled():
 
 
 def test_no_face_raises_a_message():
-    from irismix import pipeline as PL, render as RD, layer_recover as LR
+    from irismix import pipeline as PL, render_steps as RD, layer_recover as LR
     for call in (lambda: PL.design_transform(BLANK, dx=0.1), lambda: PL.part_masks(BLANK), lambda: PL.px_per_mm(BLANK),
                  lambda: LR.support_of(BLANK), lambda: RD.prepare(dict(S=BLANK))):
         with pytest.raises(ValueError, match='no face'): call()

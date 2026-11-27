@@ -11,7 +11,7 @@ These are the formulas of the paper's layer edits:
   blend(l1, l2, t)              linear blending alpha_t = (1 - t) a1 + t a2, K_t = (1 - t) K1 + t K2"""
 import numpy as np
 import cv2
-from irismix.utils import lab, rgb
+from irismix.utils import rgb_to_lab, lab_to_rgb
 
 
 def compose(at, F, T, strength=1.0):
@@ -26,16 +26,16 @@ def part_off(at, w):
 def recolour_to(F, m, target):
     """F (H, W, 3) [0, 1]; m bool (H, W) region; target CIELAB triple. The region's mean lightness is moved to the target
     L (shading kept), a* b* are set to the target."""
-    L = lab(F); mu = L[m].mean(0)
+    L = rgb_to_lab(F); mu = L[m].mean(0)
     L2 = L.copy(); L2[..., 0] = L[..., 0] - mu[0] + target[0]; L2[..., 1] = target[1]; L2[..., 2] = target[2]
-    return np.where(m[..., None], rgb(L2), F)
+    return np.where(m[..., None], lab_to_rgb(L2), F)
 
 
 def rotate_hue(F, m, deg):
     """rotate the a* b* chroma of F inside m by deg degrees (lightness and chroma magnitude kept)."""
-    L = lab(F); t = np.radians(deg); c, s = np.cos(t), np.sin(t)
+    L = rgb_to_lab(F); t = np.radians(deg); c, s = np.cos(t), np.sin(t)
     a, b = L[..., 1].copy(), L[..., 2].copy(); L[..., 1] = c * a - s * b; L[..., 2] = s * a + c * b
-    return np.where(m[..., None], rgb(L), F)
+    return np.where(m[..., None], lab_to_rgb(L), F)
 
 
 def select(at, w, s):
@@ -57,9 +57,9 @@ def soften(at, F, m, r):
 
 def lip_finish(F, m, k, mu):
     """matte (k = -1) removes the highlights painted into the layer above its mean lightness mu, gloss (k > 0) amplifies them."""
-    L = lab(F); h = np.maximum(L[..., 0] - mu, 0)
+    L = rgb_to_lab(F); h = np.maximum(L[..., 0] - mu, 0)
     L[..., 0] = np.clip(L[..., 0] + k * h, 0, 100)
-    return np.where(m[..., None], rgb(L), F)
+    return np.where(m[..., None], lab_to_rgb(L), F)
 
 
 def stack(layers):

@@ -5,18 +5,18 @@ whole layer (parts None). End to end:
      face < forehead < brows < eyes < lips (exact alpha-over) -> warp-only composite C   paste()
   3. renderer conditions: the full (unfiltered) reference layers restricted to whole design units of the requested parts,
      warped onto the source (A, K), reference layer crops (lips / eyes), per-part colour caption   look_item()
-  4. render.prepare -> render.render_one (one step, sigma 0.65) -> render.compose_full (masked residual)
+  4. render_steps.prepare -> render_steps.render_one (one step, sigma 0.65) -> render_steps.compose_full (masked residual)
   5. layer_recover.layer_from_render: closed-form layer (alpha~, F') of the render for edits
   6. part_masks + apply_edits: closed-form edits of that layer (strength, part toggles, recolour, hue)
 Steps 2, 3, 5 and 6 run on the CPU (face parsing on the GPU when available)."""
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, cv2
 
-from irismix import decomposer as DEC, render as RD, captions as CP, rules, edits as ED, layer_recover as LR, face_parts as FP
-from irismix.utils import face_box, lab
+from irismix import decomposer as DEC, render_steps as RD, captions as CP, rules, edits as ED, layer_recover as LR, face_parts as FP
+from irismix.utils import face_box, rgb_to_lab
 
 
-def _each(fn, items):
+def _parallel_map(fn, items):
     """fn over the items in worker threads (the per-image caches are lock-protected; OpenCV and NumPy release the GIL),
     results in input order. Every item is computed exactly as in a plain loop, so the outputs do not change."""
     items = list(items)
@@ -58,7 +58,7 @@ def paste(S, refs):
         return rules.transfer_layer((L['a'], L['F'], L['w']), L['Br'], L['Im'], S, parts=r['parts'], check_glasses=False,
                                     design_only=True, min_design=False, lip_mode='recolour')
     tps = []; sup = None
-    for r, tp in zip(refs, _each(transfer, refs)):           # the references are transferred in parallel
+    for r, tp in zip(refs, _parallel_map(transfer, refs)):           # the references are transferred in parallel
         if 'error' in tp: raise ValueError(f"transfer failed ({tp['error']}) for parts {r['parts'] or 'all'}")
         if r.get('M') is not None:                            # repositioned design, kept on paintable skin
             if sup is None: sup = LR.support_of(S)[0]
@@ -84,13 +84,13 @@ def look_item(S, refs, C, av):
         L, ps = r['layer'], r['parts']
         a = L['a']
         if ps is not None:                                    # whole design units of the requested parts
-            a = a * np.maximum(RD.unit_mask(a, L['w'], ps), np.clip(sum(L['w'][RD.NAMES.index(p)] for p in ps), 0, 1))
-        aw, Pw = RD.warp_full(a, L['F'], L['Br'], S)
+            a = a * np.maximum(RD.design_unit_mask(a, L['w'], ps), np.clip(sum(L['w'][RD.NAMES.index(p)] for p in ps), 0, 1))
+        aw, Pw = RD.warp_reference_layer(a, L['F'], L['Br'], S)
         if r.get('M') is not None: aw, Pw = move_layer(aw, Pw, r['M'], S.shape)
-        rc = RD.ref_side(L['Im'], L['Br'], L['a'], L['F']) if ps is None or set(ps) & {'lips', 'eyes'} else None
+        rc = RD.reference_crops(L['Im'], L['Br'], L['a'], L['F']) if ps is None or set(ps) & {'lips', 'eyes'} else None
         return aw, Pw, rc, RD.layer_caption(L['Im'], L['Br'], L['a'], L['F'], ps)
     ordered = sorted(refs, key=order)
-    for r, (aw, Pw, rc, c) in zip(ordered, _each(per_ref, ordered)):   # computed in parallel, folded in paint order
+    for r, (aw, Pw, rc, c) in zip(ordered, _parallel_map(per_ref, ordered)):   # computed in parallel, folded in paint order
         ps = r['parts']
         K = Pw + (1 - aw[..., None]) * K; A = aw + (1 - aw) * A
         if rc is not None:
@@ -102,9 +102,9 @@ def look_item(S, refs, C, av):
 
 
 def part_masks(S):
-    """5 landmark part weights of the source in its full frame, in render.NAMES order (lips, eyes, brows, face, forehead)."""
+    """5 landmark part weights of the source in its full frame, in render_steps.NAMES order (lips, eyes, brows, face, forehead)."""
     p3 = rules.require_landmarks_3d(S); X0, Y0, side = face_box(p3, S.shape)
-    w5 = FP.rule_parts(((p3[:, :2] - [X0, Y0]) * (512 / side)).astype(np.float32))
+    w5 = FP.landmark_part_weights(((p3[:, :2] - [X0, Y0]) * (512 / side)).astype(np.float32))
     w = np.zeros((5,) + S.shape[:2], np.float32)
     for k in range(5): w[k, Y0:Y0 + side, X0:X0 + side] = cv2.resize(w5[k], (side, side))
     return w
@@ -120,7 +120,7 @@ def apply_edits(at, F, S, w, strength=1.0, off=(), recolour=None, hue=None, part
                 mm=None):
     """closed-form edits of a layer (alpha~, F') over the target S (uint8), w = part_masks(S). Applied in this order:
       soft          {part: radius in mm}: Gaussian softening (mm = pixels per millimetre, px_per_mm(S) when None)
-      part_strength 5 per-part strengths in render.NAMES order (selection s = sum_k s_k w_k); off: parts switched off
+      part_strength 5 per-part strengths in render_steps.NAMES order (selection s = sum_k s_k w_k); off: parts switched off
       recolour      {part: CIELAB triple}; hue {part: degrees}
       finish        {part: k}: lip finish, k = -1 matte ... +1 gloss
     then composited with the global strength s: out = min(1, s alpha) F + (1 - min(1, s alpha)) S.
@@ -140,5 +140,5 @@ def apply_edits(at, F, S, w, strength=1.0, off=(), recolour=None, hue=None, part
     for p, k in (finish or {}).items():
         m = (w[idx(p)] > 0.5) & (at > LR.EPS)
         if k and m.any():
-            F = ED.lip_finish(F, m, float(k), float(lab(F)[..., 0][m].mean()))
+            F = ED.lip_finish(F, m, float(k), float(rgb_to_lab(F)[..., 0][m].mean()))
     return ED.compose(at, F, S.astype(np.float32) / 255, strength), at, F

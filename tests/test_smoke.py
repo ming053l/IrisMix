@@ -1,6 +1,6 @@
 """CPU smoke test (no GPU, no diffusion weights): imports, layer algebra, the LayerBeauty loader, and the CPU part of the
 inference path on a bundled LayerBeauty pair -- transfer rules + warp (pipeline.paste), renderer conditions
-(pipeline.look_item, render.prepare), the masked-residual paste-back with an identity render (render.compose_full) and the
+(pipeline.look_item, render_steps.prepare), the masked-residual paste-back with an identity render (render_steps.compose_full) and the
 closed-form layer recovery (layer_recover.layer_from_render). The exact LayerBeauty layer of the reference stands in for the
 decomposition.
 Needs the face parser (Hugging Face hub, downloaded once) and the MediaPipe landmarker (downloaded into the cache, or
@@ -21,7 +21,7 @@ SRC = ('daily_scene', 'test', 'ds_001545')                      # the bare face 
 
 def test_imports():
     import importlib
-    for m in ('config', 'utils', 'face_parts', 'rules', 'edit_region', 'conditions', 'captions', 'render',
+    for m in ('config', 'utils', 'face_parts', 'rules', 'edit_region', 'conditions', 'captions', 'render_steps',
               'layer_recover', 'edits', 'pipeline', 'decomposer', 'flux', 'renderer', 'viewer.engine', 'viewer.server', 'viewer.cli'):
         importlib.import_module(f'irismix.{m}')
 
@@ -61,8 +61,8 @@ def _look(parts):
 
 
 def test_cpu_inference_path():
-    from irismix import pipeline as PL, render as RD, layer_recover as LR
-    from irismix.utils import u8
+    from irismix import pipeline as PL, render_steps as RD, layer_recover as LR
+    from irismix.utils import to_uint8
     S, refs, C, av = _look(['eyes', 'lips'])
     Sf = S.astype(np.float32) / 255
     assert av.max() > 0.5 and (av > 0.05).mean() > 0.002          # the eye blocks and lips were pasted
@@ -74,7 +74,7 @@ def test_cpu_inference_path():
     om = info['om']
     assert 0 < (om > 0.5).mean() < 0.5                             # Omega: the design neighbourhood, not the face
     I, m = RD.compose_full(S, C, arr['C'], info, av)               # identity render (H = C)
-    assert np.array_equal(u8(I)[m == 0], S[m == 0])                 # outside Omega: the source exactly
+    assert np.array_equal(to_uint8(I)[m == 0], S[m == 0])                 # outside Omega: the source exactly
     assert np.abs(I - ((1 - m[..., None]) * Sf + m[..., None] * C)).max() < 1e-5   # zero residual: blend of S and C
     at, F = LR.layer_from_render(I, S, it['A'], av)
     R = at[..., None] * F + (1 - at[..., None]) * Sf
@@ -83,7 +83,7 @@ def test_cpu_inference_path():
 
 
 def test_single_reference_item():
-    from irismix import pipeline as PL, render as RD
+    from irismix import pipeline as PL, render_steps as RD
     S, refs, C, av = _look(None)
     it = PL.look_item(S, refs, C, av)
     assert it['parts'] is None

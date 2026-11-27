@@ -8,7 +8,7 @@ Token layout (OminiControl-style in-context conditions):
   crops    lip, eyeL, eyeR 256 -> 16 x 16, ids (T=90/100/110, 64+h, 64+w)  own position offset (not aligned)
 Input-anchored flow: x_sigma = (1 - sigma) z(C) + sigma n, straight path to z(I) with constant velocity
 v = (x_sigma - z(I)) / sigma; any t in (0, sigma]: x_t = z(I) + t v, so a few Euler steps from sigma to 0 are exact
-when v is learned. Output used as a masked residual: out = C + Omega (dec(x_0) - C) (render.compose_full).
+when v is learned. Output used as a masked residual: out = C + Omega (dec(x_0) - C) (render_steps.compose_full).
 
 GPU work per sample: one VAE encode per condition (11; only C keeps encoder features for the skips), STEPS transformer
 evaluations, one decode. Position ids and the output grid are built once per shape on the device; prompt embeddings are
@@ -17,7 +17,7 @@ default 512, 0 = off), so the 4B text encoder is loaded and moved to the GPU onl
 import collections, hashlib, os
 import numpy as np, torch
 
-from irismix.flux import OneStep, Skips, load_lora_ckpt, load_pipeline, load_state, lora_state, use_lora, unpack_grid
+from irismix.flux import OneStep, SkipConvs, load_lora_ckpt, load_pipeline, load_state, lora_state, use_lora, unpack_grid
 
 ALIGNED = ('C', 'K', 'A')
 MAPS = ('S1', 'S2', 'S3', 'G1', 'G2')
@@ -55,7 +55,7 @@ class Renderer:
         self.p, self.dev = pipe, dev
         self.one_step = OneStep(pipe, dev, emb={}, skips=False)
         self.mu, self.sd = self.one_step.mu, self.one_step.sd
-        self.skips = Skips().to(dev)               # decoder skips, weights from the renderer checkpoint
+        self.skips = SkipConvs().to(dev)               # decoder skips, weights from the renderer checkpoint
         if ckpt: self.load(ckpt)
         self.emb_cache = {}
         self.dev_cache = {}                        # per-shape device constants
@@ -104,9 +104,9 @@ class Renderer:
         if te is not None: te.to('cpu')
 
     # -------------------------------------------------------------------------------------------- tokens
-    def enc(self, x, feats=True): return self.one_step.enc(x, feats)
+    def encode(self, x, feats=True): return self.one_step.encode(x, feats)
 
-    def _ids(self, z, t0, scale=1.0, off=0.0):
+    def _position_ids(self, z, t0, scale=1.0, off=0.0):
         """position ids (B, h*w, 4) float on the device: T = t0, (h, w) * scale + off (cached per shape)."""
         key = ('ids', tuple(z.shape), t0, scale, off); c = self.dev_cache
         if key not in c:
@@ -119,9 +119,9 @@ class Renderer:
     def _encode_conditions(self, b):
         """-> ({name: latent}, encoder features of C). One encode per condition (only C keeps its skip features). Not batched
         on purpose: in bf16 a batched encode picks other convolution kernels and changes the render by a few levels."""
-        zC, fC = self.enc(b['C'])
+        zC, fC = self.encode(b['C'])
         zs = {'C': zC}
-        for name in (ALIGNED + MAPS + CROPS)[1:]: zs[name] = self.enc(b[name], feats=False)[0]
+        for name in (ALIGNED + MAPS + CROPS)[1:]: zs[name] = self.encode(b[name], feats=False)[0]
         return zs, fC
 
     def cond_tokens(self, b):
@@ -130,23 +130,23 @@ class Renderer:
         p = self.p; toks, ids = [], []
         zs, fC = self._encode_conditions(b)
         for k, name in enumerate(ALIGNED):
-            toks.append(p._pack_latents(zs[name])); ids.append(self._ids(zs[name], 10 * (k + 1)))
+            toks.append(p._pack_latents(zs[name])); ids.append(self._position_ids(zs[name], 10 * (k + 1)))
         for k, name in enumerate(MAPS):
-            toks.append(p._pack_latents(zs[name])); ids.append(self._ids(zs[name], 40 + 10 * k, 2.0, 0.5))
+            toks.append(p._pack_latents(zs[name])); ids.append(self._position_ids(zs[name], 40 + 10 * k, 2.0, 0.5))
         for k, name in enumerate(CROPS):
-            toks.append(p._pack_latents(zs[name])); ids.append(self._ids(zs[name], 90 + 10 * k, 1.0, 64))
+            toks.append(p._pack_latents(zs[name])); ids.append(self._position_ids(zs[name], 90 + 10 * k, 1.0, 64))
         return torch.cat(toks, 1), torch.cat(ids, 1), zs['C'], fC
 
     def velocity(self, x, t, ctok, cids, pe, ti):
         p = self.p; Bn = x.shape[0]
-        grid = self.grid(Bn)
+        grid = self.output_grid(Bn)
         v = p.transformer(hidden_states=torch.cat([x, ctok], 1).to(p.transformer.dtype),
                           timestep=t.to(p.transformer.dtype), guidance=None,
                           encoder_hidden_states=pe, txt_ids=ti,
                           img_ids=torch.cat([grid, cids], 1), return_dict=False)[0][:, :x.shape[1]]
         return v
 
-    def grid(self, Bn, h=32):
+    def output_grid(self, Bn, h=32):
         key = ('grid', Bn, h); c = self.dev_cache
         if key not in c:
             g = torch.cartesian_prod(torch.arange(1), torch.arange(h), torch.arange(h), torch.arange(1)).float().to(self.dev)
@@ -154,7 +154,7 @@ class Renderer:
         return c[key]
 
     def decode(self, x, fC):
-        return self.one_step.dec(unpack_grid(x, 32, 32), fC, self.skips)
+        return self.one_step.decode(unpack_grid(x, 32, 32), fC, self.skips)
 
     # -------------------------------------------------------------------------------------------- sampling
     @torch.no_grad()

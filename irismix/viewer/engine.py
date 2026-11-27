@@ -18,8 +18,8 @@ idle minutes; the next render loads the models again."""
 import collections, ctypes, gc, hashlib, sys, threading, time
 import numpy as np, cv2
 
-from irismix import config, rules, pipeline as PL, render as RD, layer_recover as LR, edits as ED
-from irismix.utils import face_box, lab, u8
+from irismix import config, rules, pipeline as PL, render_steps as RD, layer_recover as LR, edits as ED
+from irismix.utils import face_box, rgb_to_lab, to_uint8
 
 SLOTS = ('whole', 'eyes', 'lips', 'face', 'forehead')       # 'whole': one reference for the whole look
 PAINT = ('face', 'forehead')                                 # parts that the design transform moves
@@ -82,7 +82,7 @@ class Engine:
             pass
 
     @staticmethod
-    def _cap(cache, n):
+    def _trim_cache(cache, n):
         while len(cache) > n: cache.popitem(last=False)
 
     def free_memory(self):
@@ -185,7 +185,7 @@ class Engine:
             s1 = self._model('s1'); self.say(f'Decomposer: decomposing {label}')
             L = PL.decompose(s1, img)
             if 'error' in L: raise ValueError(f'{label}: {L["error"]}')
-            self.layers[h] = L; self._cap(self.layers, MAX_LAYERS)
+            self.layers[h] = L; self._trim_cache(self.layers, MAX_LAYERS)
         return self.layers[h]
 
     # ------------------------------------------------------------------ run
@@ -208,7 +208,7 @@ class Engine:
                 from irismix import occluder as OC
                 ed = self._model('editor'); self.say(f'lifting the {tgt} off'); t0 = time.time()
                 self.free[k] = OC.remove(ed, W, tgt, self.seed); t['occluder'] = time.time() - t0
-                ed = None; self._cap(self.free, MAX_FREE)
+                ed = None; self._trim_cache(self.free, MAX_FREE)
             S = free = self.free[k]
         elif tgt == 'remake':
             t0 = time.time(); Ls = self._decompose(W, 'the photo'); t['remake'] = time.time() - t0
@@ -269,7 +269,7 @@ class Engine:
 
     @staticmethod
     def _mean_L(at, F, w):
-        L = lab(F)[..., 0]
+        L = rgb_to_lab(F)[..., 0]
         return {p: float(L[m].mean()) if (m := (w[k] > 0.5) & (at > LR.EPS)).any() else 50.0 for k, p in enumerate(RD.NAMES)}
 
     # ------------------------------------------------------------------ edits (exact, numpy)
@@ -346,7 +346,7 @@ class Engine:
                 C, _, _ = PL.paste(T8, [dict(layer=L, parts=None)])
             except ValueError as e:
                 rows.append(dict(i=i, name=name, error=str(e))); continue
-            crops.append(face_crop(u8(C), T8))
+            crops.append(face_crop(to_uint8(C), T8))
             h, why = AE.harmony(face, AE.look_colours(L))
             rows.append(dict(i=i, name=name, harmony=h, reasons=why, crop=crops[-1]))
         if not self.keep: self.models.clear(); self._free_gpu()
@@ -409,7 +409,7 @@ class Engine:
             seq += [layer] if cat == 'lipstick' else ([lip] if lip is not None else [])
             for l in seq:
                 if l is not None: img = ED.compose(l[0], l[1], img)
-            u = u8(img)
+            u = to_uint8(img)
             dE = SH.ciede2000(skin, s['lab']); dL = s['lab'][0] - skin[0]; notes = []      # codes, worded by the browser
             if cat == 'foundation':
                 sub = dict(k='depth_ut', depth=s.get('depth'), ut=s.get('undertone'))

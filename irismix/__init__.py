@@ -9,7 +9,7 @@
   conditions     Renderer source conditions (with the signed distance maps) and reference-layer caption helpers
   edit_region    design mask D, edit region Omega, reference layer crops
   captions       structured per-part captions
-  render         renderer conditions of a look, 512-crop preparation, masked-residual paste-back
+  render_steps   the steps around the renderer: conditions of a look, 512-crop preparation, masked-residual paste-back
   renderer       the renderer (Renderer.sample)
   pipeline       a look = source + per-part references, end to end (used by scripts/infer.py)
   layer_recover  closed-form layer (alpha~, F') of a render

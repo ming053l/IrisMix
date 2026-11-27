@@ -1,4 +1,5 @@
-"""One-step FLUX.2-klein-4B generator shared by the decomposer (decompose 'E' / harmonise 'H') and the renderer:
+"""One-step FLUX.2-klein-4B generator shared by the decomposer (tasks decompose and harmonise, keyed 'E' and 'H' in the
+released checkpoints and in the prompt-embedding cache) and the renderer:
 VAE encode with encoder skip features, rectified-flow single step, decode with zero-initialised encoder -> decoder skips.
 
   x_1 = noise, x_0 = x_1 - v(x_1, t=1 | refs, prompt)   (sigma < 1: start from the noised first input, ART / pix2pix-Turbo)
@@ -7,18 +8,18 @@ input's features into the bare panel of E and the output of H. The training scri
 import os
 import numpy as np, torch
 
-P_E = ("Decompose this made-up face into three panels with exactly the same framing as the photo. Left panel: the same "
+PROMPT_DECOMPOSE = ("Decompose this made-up face into three panels with exactly the same framing as the photo. Left panel: the same "
        "person with all makeup and face paint removed, natural bare skin, natural lips and brows, identical identity, "
        "expression, hair, lighting and background. Middle panel: only the makeup, over a pure white background. Right "
        "panel: the same makeup, over a pure black background. Skin, eyes, teeth, hair, clothes and background are not "
        "part of the makeup.")
 
-P_H = ("Make this made-up face look like a natural, seamless real photograph: blend the makeup edges into the skin and "
+PROMPT_HARMONIZE = ("Make this made-up face look like a natural, seamless real photograph: blend the makeup edges into the skin and "
        "match the makeup to the face's lighting. Keep the makeup design, colours and position exactly, and keep the "
        "person's identity, expression, hair and background exactly the same.")
 
 
-def to_t(x):  # HxWx3 [0,1] -> 3xHxW [-1,1]
+def image_to_tensor(x):  # HxWx3 [0,1] -> 3xHxW [-1,1]
     return torch.from_numpy(np.ascontiguousarray(x)).permute(2, 0, 1) * 2 - 1
 
 
@@ -28,7 +29,7 @@ def unpack_grid(x, h, w):
     return x.reshape(x.shape[0], h, w, x.shape[2]).permute(0, 3, 1, 2).contiguous()
 
 
-class Skips(torch.nn.Module):
+class SkipConvs(torch.nn.Module):
     """pix2pix-Turbo style encoder->decoder skips with zero-initialised 1x1 convs: features of the INPUT image at 1, 1/2
     and 1/4 resolution are added after decoder up-blocks 0-2, so unchanged content is copied from the input instead of
     regenerated. Zero init -> identical to the plain decoder."""
@@ -46,13 +47,13 @@ class OneStep:
         self.p, self.dev = pipe, dev
         if emb is None:
             with torch.no_grad():
-                emb = {k: pipe.encode_prompt(prompt=v, device=dev) for k, v in (('E', P_E), ('H', P_H))}
+                emb = {k: pipe.encode_prompt(prompt=v, device=dev) for k, v in (('E', PROMPT_DECOMPOSE), ('H', PROMPT_HARMONIZE))}
         self.emb = emb
         bn = pipe.vae.bn
         self.mu = bn.running_mean.view(1, -1, 1, 1).to(dev); self.sd = torch.sqrt(bn.running_var.view(1, -1, 1, 1) + pipe.vae.config.batch_norm_eps).to(dev)
-        if skips: self.skips = torch.nn.ModuleDict({'E': Skips(), 'H': Skips()}).to(dev)
+        if skips: self.skips = torch.nn.ModuleDict({'E': SkipConvs(), 'H': SkipConvs()}).to(dev)
 
-    def enc(self, x, feats=True):
+    def encode(self, x, feats=True):
         """B,3,H,W [-1,1] -> normalised patchified latent (B,128,h,w) + encoder features (f0, f1, f2) for the skips (None
         with feats=False). The encoder trunk (conv_in, down blocks 0-1) runs ONCE and is shared by the skip features and
         the latent (same layers on the same input as vae.encode -> the same latent); the mean of the posterior is used."""
@@ -74,7 +75,7 @@ class OneStep:
         z = (self.p._patchify_latents(z) - self.mu) / self.sd
         return z, f
 
-    def dec(self, lat, feats=None, sk=None):
+    def decode(self, lat, feats=None, sk=None):
         v = self.p.vae; z = self.p._unpatchify_latents(lat * self.sd + self.mu).to(v.dtype)
         if v.post_quant_conv is not None: z = v.post_quant_conv(z)
         d = v.decoder; ck = lambda f, x: torch.utils.checkpoint.checkpoint(f, x, None, use_reentrant=False) if torch.is_grad_enabled() else f(x, None)
@@ -86,12 +87,12 @@ class OneStep:
                 h = torch.cat([h[..., :f.shape[-1]] + f, h[..., f.shape[-1]:]], -1)
         h = d.conv_act(d.conv_norm_out(h)); return d.conv_out(h).float().clamp(-1, 1)
 
-    def gen(self, refs, task, R, sigma=1.0):
+    def generate(self, refs, task, R, sigma=1.0):
         """refs: list of B,3,R,R. Returns E: (B,3,R,3R) canvas [B|W|K]; H: (B,3,R,R).
         sigma < 1 (H only): the output starts from the noised first input, x_s = (1 - s) z_in + s n, and one step gives
         x0 = x_s - s v (ART / pix2pix-Turbo: start from the input, not from pure noise, so identity is kept)."""
         p, B = self.p, refs[0].shape[0]
-        enc = [self.enc(r, feats=(i == 0)) for i, r in enumerate(refs)]     # skip features: first input only
+        enc = [self.encode(r, feats=(i == 0)) for i, r in enumerate(refs)]     # skip features: first input only
         zs = [e[0] for e in enc]
         ref_ids = p._prepare_image_ids([z[:1] for z in zs]).to(self.dev).repeat(B, 1, 1)
         rz = torch.cat([p._pack_latents(z) for z in zs], 1)
@@ -108,7 +109,7 @@ class OneStep:
                           img_ids=torch.cat([out_ids, ref_ids], 1), return_dict=False)[0][:, :x.shape[1]]
         x0 = x - sigma * v.to(x.dtype)                                       # rectified flow, one step t = sigma -> 0
         lat = unpack_grid(x0, noise.shape[2], noise.shape[3])                # grid: full raster
-        return self.dec(lat, enc[0][1], self.skips[task])                    # skips: E bare panel / H output
+        return self.decode(lat, enc[0][1], self.skips[task])                    # skips: E bare panel / H output
 
 
 def load_state(path):

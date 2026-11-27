@@ -1,9 +1,9 @@
 """Decomposer: decomposition of a reference photo into (bare face, makeup layer) with one network evaluation.
 
-FLUX.2-klein-4B + the decomposer LoRA (flux.OneStep, task 'E'): the reference is cropped to a face-centred square (1.9 x the
+FLUX.2-klein-4B + the decomposer LoRA (flux.OneStep, decomposition task; its checkpoint keys use the letter E): the reference is cropped to a face-centred square (1.9 x the
 MediaPipe landmark extent), resized to 512 and mapped in ONE step to the canvas [bare | layer on white | layer on black].
 Closed form: alpha = 1 - mean_c(W - K), F = K / alpha. The layer, the predicted bare and 5 landmark part weights
-(face_parts.rule_parts on the predicted bare) are pasted back into the reference's own frame (alpha = 0 outside the crop;
+(face_parts.landmark_part_weights on the predicted bare) are pasted back into the reference's own frame (alpha = 0 outside the crop;
 the bare there is the reference photo itself).
 Landmarks of in-the-wild photos: when the default MediaPipe face landmarker (confidence 0.5) finds no face, the crop and the
 predicted bare retry with confidence 0.1."""
@@ -12,7 +12,7 @@ import numpy as np, cv2
 
 from irismix import config
 from irismix import rules, face_parts as FP
-from irismix.utils import R, face_box, from_t
+from irismix.utils import R, face_box, tensor_to_image
 
 
 def image_face_box(img):
@@ -41,7 +41,7 @@ class Decomposer:
             if pipe.text_encoder is None: pipe = flux.load_pipeline(dev, base_model=base_model, lora_init=lora_init)
             pipe.text_encoder.to(dev)
             with torch.no_grad():
-                emb = {k: tuple(x.cpu() for x in pipe.encode_prompt(prompt=v, device=dev)) for k, v in (('E', flux.P_E), ('H', flux.P_H))}
+                emb = {k: tuple(x.cpu() for x in pipe.encode_prompt(prompt=v, device=dev)) for k, v in (('E', flux.PROMPT_DECOMPOSE), ('H', flux.PROMPT_HARMONIZE))}
             pipe.text_encoder.to('cpu')
             if torch.cuda.is_available(): torch.cuda.empty_cache()
             os.makedirs(os.path.dirname(cache), exist_ok=True)
@@ -57,11 +57,11 @@ class Decomposer:
         from irismix import flux
         torch = self.torch
         flux.use_lora(self.one_step.p, self, self.lora)
-        t = flux.to_t(x512.astype(np.float32) / 255)[None].to(self.dev)
+        t = flux.image_to_tensor(x512.astype(np.float32) / 255)[None].to(self.dev)
         torch.manual_seed(seed)
         with torch.no_grad(), torch.autocast(torch.device(self.dev).type, dtype=torch.bfloat16):
-            c = self.one_step.gen([t], 'E', R).float()
-        c = from_t(c)
+            c = self.one_step.generate([t], 'E', R).float()
+        c = tensor_to_image(c)
         return c[:, :R], c[:, R:2 * R], c[:, 2 * R:]
 
 
@@ -75,7 +75,7 @@ def predict_layer(s1, ref):
     a = closed_form_alpha(W, K)
     pb = rules.landmarks((B * 255).round().astype(np.uint8), fallback=True)
     if pb is None: pb = rules.landmarks(crop, fallback=True)
-    w = FP.rule_parts(pb) if pb is not None else np.stack([np.zeros((R, R))] * 3 + [np.ones((R, R)), np.zeros((R, R))]).astype(np.float32)
+    w = FP.landmark_part_weights(pb) if pb is not None else np.stack([np.zeros((R, R))] * 3 + [np.ones((R, R)), np.zeros((R, R))]).astype(np.float32)
     up = lambda x: cv2.resize(x.astype(np.float32), (side, side), interpolation=cv2.INTER_LINEAR if side > R else cv2.INTER_AREA)
     H, Wd = ref.shape[:2]
     af = np.zeros((H, Wd), np.float32); Pf = np.zeros((H, Wd, 3), np.float32)

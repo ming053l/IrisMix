@@ -1,5 +1,5 @@
 """Landmark part weights on a 512 x 512 face crop (decomposer part weights, renderer source conditions and captions):
-  rule_parts(p)  5 soft part weights (lips, eyes, brows, face, forehead), priority lips > eyes > brows > forehead > face,
+  landmark_part_weights(p)  5 soft part weights (lips, eyes, brows, face, forehead), priority lips > eyes > brows > forehead > face,
                  summing to 1 per pixel; p = 478 MediaPipe landmarks in px of the 512 crop
 plus the MediaPipe index groups of the lips, eyes, brows and face oval."""
 import cv2, numpy as np
@@ -20,31 +20,31 @@ FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365
 UPPER_OVAL = [10, 338, 297, 332, 284, 251, 389, 162, 21, 54, 103, 67, 109]
 
 
-def poly(pts, k=0, blur=0):
+def polygon_mask(pts, k=0, blur=0):
     m = np.zeros((S, S), np.uint8); cv2.fillPoly(m, [np.round(pts).astype(np.int32)], 1)
     if k > 0: m = cv2.dilate(m, np.ones((2 * k + 1, 2 * k + 1), np.uint8))
     m = m.astype(np.float32)
     return cv2.GaussianBlur(m, (0, 0), blur) if blur > 0 else m
 
 
-def scale(pts, s):
+def scale_about_centre(pts, s):
     c = pts.mean(0); return c + s * (pts - c)
 
 
-def rule_parts(p):
+def landmark_part_weights(p):
     """soft 5-part weights from landmarks, same parts as the LayerBeauty-Creative part weights."""
-    lips = poly(p[LIP_OUT], 3, 2)
+    lips = polygon_mask(p[LIP_OUT], 3, 2)
     eyes = np.zeros((S, S), np.float32); brows = np.zeros((S, S), np.float32)
     for eye, bl, br in ((EYE_L, BROWLINE_L, BROW_L), (EYE_R, BROWLINE_R, BROW_R)):
         e = p[eye]
         # eye region: eye contour widened (liner wings) up to the lower brow line (lid / shadow area)
-        reg = np.concatenate([scale(e, np.array([1.45, 1.9], np.float32)), p[bl[1]]], 0)
-        eyes = np.maximum(eyes, poly(cv2.convexHull(reg.astype(np.float32))[:, 0], 4, 4))
-        brows = np.maximum(brows, poly(cv2.convexHull(p[br])[:, 0], 3, 2))
+        reg = np.concatenate([scale_about_centre(e, np.array([1.45, 1.9], np.float32)), p[bl[1]]], 0)
+        eyes = np.maximum(eyes, polygon_mask(cv2.convexHull(reg.astype(np.float32))[:, 0], 4, 4))
+        brows = np.maximum(brows, polygon_mask(cv2.convexHull(p[br])[:, 0], 3, 2))
     c = p[FACE_OVAL].mean(0)
     up = p[UPPER_OVAL]
     oval_ext = np.concatenate([p[FACE_OVAL], c + 1.75 * (up - c)], 0)
-    face_all = poly(cv2.convexHull(oval_ext.astype(np.float32))[:, 0], 0, 3)
+    face_all = polygon_mask(cv2.convexHull(oval_ext.astype(np.float32))[:, 0], 0, 3)
     brow_y = p[BROW_L + BROW_R][:, 1].min()
     yy = np.arange(S, dtype=np.float32)[:, None].repeat(S, 1)
     fore = face_all * np.clip((brow_y - yy) / 12 + 0.5, 0, 1)

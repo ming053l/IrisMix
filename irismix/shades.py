@@ -15,7 +15,7 @@ lipsticks restricted to the undertone's family and picked as everyday / brighter
 import json, os
 import numpy as np, cv2
 
-from irismix.utils import lab, rgb
+from irismix.utils import rgb_to_lab, lab_to_rgb
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'shades.json')
 TIE = 1.0
@@ -30,10 +30,10 @@ SCLERA_REF = np.array([0.343, 0.309, 0.287])       # linear RGB of the visible s
 EXP_DAMP = 0.5
 
 
-def lab1(c): return lab(np.asarray(c, np.float32).reshape(1, 1, 3))[0, 0]
-def rgb1(L): return rgb(np.asarray(L, np.float32).reshape(1, 1, 3))[0, 0]
-def hex2rgb(h): return np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], np.float32) / 255
-def rgb2hex(c): return '#%02X%02X%02X' % tuple(np.clip(np.round(np.asarray(c) * 255), 0, 255).astype(int))
+def color_to_lab(c): return rgb_to_lab(np.asarray(c, np.float32).reshape(1, 1, 3))[0, 0]
+def lab_to_color(L): return lab_to_rgb(np.asarray(L, np.float32).reshape(1, 1, 3))[0, 0]
+def hex_to_rgb(h): return np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], np.float32) / 255
+def rgb_to_hex(c): return '#%02X%02X%02X' % tuple(np.clip(np.round(np.asarray(c) * 255), 0, 255).astype(int))
 def srgb_to_linear(x): x = np.clip(x, 0, 1); return np.where(x <= 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4)
 def linear_to_srgb(x): x = np.clip(x, 0, 1); return np.where(x <= 0.0031308, 12.92 * x, 1.055 * x ** (1 / 2.4) - 0.055)
 def ita(L): return float(np.degrees(np.arctan2(L[0] - 50, L[2])))
@@ -69,8 +69,8 @@ def load_shades(path=DATA):
     out = []
     for s in lib:
         s = dict(s)
-        if 'lab' in s: s['lab'] = [float(x) for x in s['lab']]; s['hex'] = rgb2hex(rgb1(s['lab']))
-        else: s['lab'] = [float(x) for x in lab1(hex2rgb(s['hex']))]
+        if 'lab' in s: s['lab'] = [float(x) for x in s['lab']]; s['hex'] = rgb_to_hex(lab_to_color(s['lab']))
+        else: s['lab'] = [float(x) for x in color_to_lab(hex_to_rgb(s['hex']))]
         s.setdefault('finish', 'satin'); s.setdefault('strength', 0.6)
         out.append(s)
     return out
@@ -114,7 +114,7 @@ class Face:
         self.T = T8.astype(np.float32) / 255; H, W = T8.shape[:2]
         pt = rules.landmarks(T8, fallback=True)
         if pt is None: raise ValueError('no face found')
-        prob = rules.parse(T8); lb = rules.argmax0(prob); sup, p3 = LR.support_of(T8)
+        prob = rules.parse(T8); lb = rules.label_map(prob); sup, p3 = LR.support_of(T8)
         p = p3[:, :2].astype(np.float32); self.pts = p; fw = float(np.ptp(p[:, 0])); self.fw = fw
         skin = np.isin(lb, (1, 2)).astype(np.float32) * sup                       # paintable skin minus features
         feat = np.isin(lb, rules.EYES + rules.BROWS + rules.LIPS).astype(np.uint8)
@@ -132,35 +132,35 @@ class Face:
             c = 0.8 * pt[i][:2] + 0.2 * pt[j][:2]; r = 0.13 * fw
             bl = np.maximum(bl, np.exp(-((xx - c[0]) ** 2 + ((yy - c[1]) / 0.8) ** 2) / (2 * r * r)))
         self.blush_m = bl * self.base_m
-        self.Tlab = lab(self.T)
-        low = lab(cv2.GaussianBlur(self.T, (0, 0), 0.012 * fw)); mid = lab(cv2.GaussianBlur(self.T, (0, 0), 0.004 * fw))
+        self.Tlab = rgb_to_lab(self.T)
+        low = rgb_to_lab(cv2.GaussianBlur(self.T, (0, 0), 0.012 * fw)); mid = rgb_to_lab(cv2.GaussianBlur(self.T, (0, 0), 0.004 * fw))
         sk = self.base_m > 0.6
         if sk.sum() < 50: sk = self.base_m > 0.2
         self.off_low = low - np.median(low[sk], 0); self.sheen = np.clip(mid[..., 0] - low[..., 0], 0, None)
         self.light = estimate_light(self.T, p, self.base_m)
         v = self.T[sk]; Lv = self.Tlab[sk]; lo, hi = np.percentile(Lv[:, 0], [10, 90]); v = v[(Lv[:, 0] >= lo) & (Lv[:, 0] <= hi)]
-        self.skin = lab1(to_d65(np.median(v, 0), self.light))                       # corrected to D65
+        self.skin = color_to_lab(to_d65(np.median(v, 0), self.light))                       # corrected to D65
         lm = self.lip_m > 0.6
-        self.lip = lab1(to_d65(np.median(self.T[lm], 0), self.light)) if lm.sum() > 20 else np.array([50, 25, 15], np.float32)
+        self.lip = color_to_lab(to_d65(np.median(self.T[lm], 0), self.light)) if lm.sum() > 20 else np.array([50, 25, 15], np.float32)
 
-    def _scene_lab(self, shade): return lab1(to_scene(rgb1(shade['lab']), self.light))
+    def _scene_lab(self, shade): return color_to_lab(to_scene(lab_to_color(shade['lab']), self.light))
 
     def foundation(self, shade, s=None, finish=None):
         s = shade['strength'] if s is None else s
         lamL, lamab, sh = FINISH[finish or shade.get('finish', 'satin')]; c = self._scene_lab(shade)
         Fl = np.empty_like(self.off_low)
         Fl[..., 0] = c[0] + lamL * self.off_low[..., 0] + sh * self.sheen; Fl[..., 1:] = c[1:] + lamab * self.off_low[..., 1:]
-        return np.clip(s * self.base_m, 0, 1), rgb(Fl)
+        return np.clip(s * self.base_m, 0, 1), lab_to_rgb(Fl)
 
     def blush(self, shade, s=None):
         s = shade['strength'] if s is None else s; c = self._scene_lab(shade)
         Fl = np.empty_like(self.off_low); Fl[..., 0] = c[0] + 0.7 * self.off_low[..., 0]; Fl[..., 1:] = c[1:]
-        return np.clip(s * self.blush_m, 0, 1), rgb(Fl)
+        return np.clip(s * self.blush_m, 0, 1), lab_to_rgb(Fl)
 
     def lipstick(self, shade, s=None, finish=None):
         s = shade['strength'] if s is None else s
         cov, g, gloss = LIP_FINISH[finish or shade.get('finish', 'satin')]
-        F = np.clip(to_scene(hex2rgb(shade['hex']), self.light)[None, None] * (1 + g * (self.lip_shade - 1))[..., None], 0, 1)
+        F = np.clip(to_scene(hex_to_rgb(shade['hex']), self.light)[None, None] * (1 + g * (self.lip_shade - 1))[..., None], 0, 1)
         if gloss: F = np.clip(F + gloss * (np.clip((self.lip_shade - 1.05) / 0.3, 0, 1) * self.lip_m)[..., None] * (1 - F), 0, 1)
         return np.clip(s * cov * self.lip_m, 0, 1).astype(np.float32), F.astype(np.float32)
 
@@ -171,7 +171,7 @@ class Face:
 
     def report(self):
         s = self.skin
-        return dict(skin_hex=rgb2hex(rgb1(s)), ita=round(ita(s), 1), undertone=self.undertone(), lip_hex=rgb2hex(rgb1(self.lip)),
+        return dict(skin_hex=rgb_to_hex(lab_to_color(s)), ita=round(ita(s), 1), undertone=self.undertone(), lip_hex=rgb_to_hex(lab_to_color(self.lip)),
                     light=self.light['src'], light_reliable=self.light['reliable'])
 
     def recommend(self, shades, n=4):

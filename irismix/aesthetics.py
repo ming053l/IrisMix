@@ -53,10 +53,10 @@ class Scorer:
 
 def look_colours(L):
     """median CIELAB of the lips and eyes of a decomposed layer (reference frame), or None where the part is (almost) bare."""
-    from irismix.utils import lab
-    from irismix import render as RD
+    from irismix.utils import rgb_to_lab
+    from irismix import render_steps as RD
     out = {}
-    Lab = lab(L['F'])
+    Lab = rgb_to_lab(L['F'])
     for p in ('lips', 'eyes'):
         m = (L['a'] > 0.3) & (L['w'][RD.NAMES.index(p)] > 0.5)
         out[p] = np.median(Lab[m], 0) if m.sum() > 40 else None

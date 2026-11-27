@@ -61,7 +61,7 @@ def seg_device():
     return os.environ.get('IRISMIX_SEG_DEVICE') or SEG_DEVICE or ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def _seg():
+def _face_parser():
     global SEG
     import torch
     from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
@@ -86,7 +86,7 @@ def parse_many(imgs):
         for k, x in zip(keys, imgs):
             if k not in _PARSE and k not in [t[0] for t in todo]: todo.append((k, x))
         if todo:
-            proc, net = _seg(); dev = next(net.parameters()).device
+            proc, net = _face_parser(); dev = next(net.parameters()).device
             for b0 in range(0, len(todo), SEG_BATCH):
                 chunk = todo[b0:b0 + SEG_BATCH]
                 with torch.no_grad(), torch.backends.cudnn.flags(enabled=True, benchmark=False, deterministic=False, allow_tf32=False):
@@ -111,13 +111,13 @@ def memoise_on_map(tag, prob, fn):
     return DERIVED.put(k, (prob, read_only(fn())))[1]
 
 
-def argmax0(prob):
+def label_map(prob):
     """prob.argmax(0) for a C x H x W map, identical result (first maximum on ties) but ~10x faster: numpy's argmax over
     the leading axis makes a transposed copy of the whole map (~80 MB at 1024^2), this scans it channel by channel."""
-    return memoise_on_map('argmax0', prob, lambda: _argmax0(prob))
+    return memoise_on_map('argmax0', prob, lambda: _label_map(prob))
 
 
-def _argmax0(prob):
+def _label_map(prob):
     best = prob[0].copy(); idx = np.zeros(prob.shape[1:], np.intp)
     for c in range(1, prob.shape[0]):
         m = prob[c] > best
@@ -135,7 +135,7 @@ def target_mask(prob):
 
 
 def _target_mask(prob):
-    lab = argmax0(prob)
+    lab = label_map(prob)
     ok = prob[list(ALLOWED) + HAIR].sum(0)                         # hair pixels may carry (hidden) makeup on the skin below
     eye = np.isin(lab, EYES).astype(np.uint8)
     k = max(3, int(round(lab.shape[0] / 256)))
@@ -182,7 +182,7 @@ def clear_caches():
     """drop the per-image analysis caches (parsing maps, landmarks, derived contexts, warp meshes) and the face parser."""
     global SEG
     with _MODEL_LOCK:
-        for c in (_PARSE, _LMK, DERIVED, pwarp.cache, pwarp.mesh):
+        for c in (_PARSE, _LMK, DERIVED, piecewise_warp.cache, piecewise_warp.mesh):
             with LOCK: c.clear()
         SEG = None
 
@@ -236,7 +236,7 @@ def require_landmarks_3d(img):
     return p
 
 
-def extend(p, shape):
+def extend_landmarks(p, shape):
     """478 landmarks + two outer rings derived from the upper face oval, so the mesh also covers the forehead up to
     the hairline: each oval point above the eyes is pushed away from the face centre (x1.35, x1.75). The same rule on
     source and target keeps the rings in correspondence."""
@@ -251,20 +251,20 @@ def extend(p, shape):
 
 
 # ------------------------------------------------------------------------------------------------ warp
-def pwarp(src, ps, pd, shape):
+def piecewise_warp(src, ps, pd, shape):
     """piecewise-affine warp over the Delaunay triangulation of the destination landmarks, as ONE remap: a triangle-index
     map of the destination and the per-triangle affine dst -> src give every pixel its source coordinate (same result as
     warping each triangle and pasting it). Pixels outside the mesh get 0.
     The maps are evaluated only inside the bounding box of the destination mesh (outside it every pixel is off-mesh:
     map = -1e4 -> 0), the destination triangulation is cached per (pd, frame), the maps per (ps, pd, frame), and the last
-    map is kept per thread (stretch_ok)."""
+    map is kept per thread (stretch_mask)."""
     H, W = shape[:2]
     src = np.asarray(src, np.float32)
     key = (np.ascontiguousarray(ps, np.float32).tobytes(), np.ascontiguousarray(pd, np.float32).tobytes(), H, W)
-    hit = pwarp.cache.get(key)
+    hit = piecewise_warp.cache.get(key)
     if hit is None:
         mk = (np.ascontiguousarray(pd).tobytes(), np.asarray(pd).dtype.str, H, W)
-        mesh = pwarp.mesh.get(mk)
+        mesh = piecewise_warp.mesh.get(mk)
         if mesh is None:                        # destination mesh: Delaunay + per-pixel triangle index inside the mesh
             dt = Delaunay(pd)                   # bounding box, shared by every reference warped onto the same target
             tris = dt.simplices
@@ -279,7 +279,7 @@ def pwarp(src, ps, pd, shape):
             idx[(idx >= 0) & (area[np.clip(idx, 0, None)] <= 1e-3)] = -1
             ii = np.where(idx < 0, len(tris), idx)
             inside = np.zeros((H, W), bool); inside[y0:y1, x0:x1] = idx >= 0
-            mesh = pwarp.mesh.put(mk, read_only((tris, (y0, y1, x0, x1), ii, xx, yy, inside)))
+            mesh = piecewise_warp.mesh.put(mk, read_only((tris, (y0, y1, x0, x1), ii, xx, yy, inside)))
         tris, (y0, y1, x0, x1), ii, xx, yy, inside = mesh
         A = np.stack([cv2.getAffineTransform(pd[tri].astype(np.float32), ps[tri].astype(np.float32)) for tri in tris]
                      + [np.array([[0, 0, -1e4], [0, 0, -1e4]], np.float32)])
@@ -289,26 +289,26 @@ def pwarp(src, ps, pd, shape):
         mx = np.full((H, W), -1e4, np.float32); my = np.full((H, W), -1e4, np.float32)
         mx[y0:y1, x0:x1] = (g(0, 0) * xx + g(0, 1) * yy + g(0, 2)).astype(np.float32)
         my[y0:y1, x0:x1] = (g(1, 0) * xx + g(1, 1) * yy + g(1, 2)).astype(np.float32)
-        hit = pwarp.cache.put(key, read_only((mx, my, inside, (y0, y1, x0, x1))))
+        hit = piecewise_warp.cache.put(key, read_only((mx, my, inside, (y0, y1, x0, x1))))
     mx, my, inside, (y0, y1, x0, x1) = hit
     out = np.zeros((H, W) + src.shape[2:], np.float32)
     if y1 > y0 and x1 > x0:
         o = cv2.remap(src, mx[y0:y1, x0:x1], my[y0:y1, x0:x1], cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
         out[y0:y1, x0:x1] = o.reshape(o.shape[:2] + src.shape[2:])
-    pwarp.tls.last_map = (mx, my, inside)
+    piecewise_warp.tls.last_map = (mx, my, inside)
     return out if out.ndim == src.ndim else out[..., None]
 
 
-pwarp.cache = LRU(16)                           # (ps, pd, H, W) -> maps (main + lips + brow mesh of several references)
-pwarp.mesh = LRU(8)                             # (pd, H, W) -> destination triangulation and triangle-index map
-pwarp.tls = threading.local()
+piecewise_warp.cache = LRU(16)                           # (ps, pd, H, W) -> maps (main + lips + brow mesh of several references)
+piecewise_warp.mesh = LRU(8)                             # (pd, H, W) -> destination triangulation and triangle-index map
+piecewise_warp.tls = threading.local()
 
 
-def stretch_ok(lo=0.2, hi=5.0):
+def stretch_mask(lo=0.2, hi=5.0):
     """soft mask of target pixels whose local area ratio (source px per target px, from the last warp map) is in
     [lo, hi] and not folded: strongly compressed / stretched / flipped triangles at a turned cheek or the jaw would
     squeeze reference residue into fragments."""
-    mx, my, inside = pwarp.tls.last_map
+    mx, my, inside = piecewise_warp.tls.last_map
     J = np.gradient(mx, axis=1) * np.gradient(my, axis=0) - np.gradient(mx, axis=0) * np.gradient(my, axis=1)
     J = cv2.medianBlur(J.astype(np.float32), 5)
     med = np.median(J[inside]) if inside.any() else 1.0
@@ -354,14 +354,14 @@ def target_context(Bt, pt):
     breg = brow_region(pt, sh)
     # brows are often labelled 'hair'. Inside the brow region, hair occludes only if it belongs to a hair component that
     # also extends outside the brow region (bangs / fringe falling over the brow); isolated 'hair' blobs are the brows.
-    hb = np.isin(argmax0(prob), HAIR).astype(np.uint8)
+    hb = np.isin(label_map(prob), HAIR).astype(np.uint8)
     nlab, lab = cv2.connectedComponents(hb)
     outside = (breg < 0.05)
     keep = np.zeros(nlab, bool); keep[np.unique(lab[(hb > 0) & outside])] = True; keep[0] = False
     real = keep[lab].astype(np.float32)
     hair = hair * (1 - breg) + hair * breg * real
     support = np.maximum(support, breg)
-    glasses = float((argmax0(prob) == GLASSES).mean())
+    glasses = float((label_map(prob) == GLASSES).mean())
     tl = np.clip(prob[list(LIPS)].sum(0), 0, 1)
     tl = cv2.GaussianBlur(cv2.dilate(tl, np.ones((3, 3), np.float32)), (0, 0), 1.0)
     # lip shading of the target (creases, highlights): modulates the recoloured lip pigment mildly, as for the brows
@@ -398,7 +398,7 @@ def transfer_layer(layer, Br, Im, Bt, parts=None, check_glasses=True, design_onl
     pr, pt = landmarks(Br), landmarks(Bt)
     if pr is None or pt is None: return dict(error='no landmarks')
     pt_face = pt.copy()                                                   # 478 face points only (for crops)
-    pr, pt = extend(pr, Br.shape), extend(pt, Bt.shape)
+    pr, pt = extend_landmarks(pr, Br.shape), extend_landmarks(pt, Bt.shape)
     a, F, w = layer() if callable(layer) else layer
     a, F, w = (np.asarray(x, np.float32).copy() for x in (a, F, w))
     if parts is not None:                                                 # keep the requested parts only
@@ -464,13 +464,13 @@ def transfer_layer(layer, Br, Im, Bt, parts=None, check_glasses=True, design_onl
     a = a * np.clip((a - LOW_A) / LOW_RAMP, 0, 1)
     sh = Bt.shape
     wl = w[0]                                                            # lips part handled separately below
-    st = pwarp(np.dstack([a * (1 - wl), (a * (1 - wl))[..., None] * F, w[0] + w[1]]), pr, pt, sh)
+    st = piecewise_warp(np.dstack([a * (1 - wl), (a * (1 - wl))[..., None] * F, w[0] + w[1]]), pr, pt, sh)
     a2, P2, le = st[..., 0], st[..., 1:4], st[..., 4]
-    okj = stretch_ok(); a2 = a2 * okj; P2 = P2 * okj[..., None]          # no fragments from folded / squeezed mesh
+    okj = stretch_mask(); a2 = a2 * okj; P2 = P2 * okj[..., None]          # no fragments from folded / squeezed mesh
     # lips: warp with the lip landmarks only (dense, local), then confine to the TARGET's lip shape (lips are
     # identity like brows); holes inside the target lips are filled with the reference lip pigment
     li = LIP_PTS
-    stl = pwarp(np.dstack([a * wl, (a * wl)[..., None] * F]), pr[li], pt[li], sh)
+    stl = piecewise_warp(np.dstack([a * wl, (a * wl)[..., None] * F]), pr[li], pt[li], sh)
     al, Pl = stl[..., 0], stl[..., 1:4]
     tc = target_context(Bt, pt)
     support, hair, breg = tc['support'], tc['hair'], tc['breg']          # final target support / occluder
@@ -495,7 +495,7 @@ def transfer_layer(layer, Br, Im, Bt, parts=None, check_glasses=True, design_onl
     # (gems, crystals, paint strokes: alpha >= ORN_A) are design, not brow tint: they keep their warped shape.
     orn = np.clip((a - ORN_A) / 0.1, 0, 1)
     wb_r = w[2] * (1 - orn); mb = a * wb_r
-    wb_t = pwarp(wb_r[..., None], pr, pt, sh)[..., 0]
+    wb_t = piecewise_warp(wb_r[..., None], pr, pt, sh)[..., 0]
     a2 = a2 * (1 - wb_t); P2 = P2 * (1 - wb_t)[..., None]
     if mb.sum() > 50:
         pig = (F * mb[..., None]).sum((0, 1)) / mb.sum(); cov = float(np.percentile(a[wb_r > 0.5], 75)) if (wb_r > 0.5).any() else 0.0

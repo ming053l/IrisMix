@@ -49,7 +49,7 @@ NCACHE = int(os.environ.get('IRISMIX_CACHE_ITEMS', '48'))     # cached images pe
 
 
 # ------------------------------------------------------------------------------------------------ images
-def u8(x):
+def to_uint8(x):
     """float [0, 1] -> uint8, round half up."""
     return np.floor(np.clip(x, 0, 1) * 255 + .5).astype(np.uint8)
 
@@ -64,7 +64,7 @@ def face_box(p, shape, k=1.9):
     return X0, Y0, side
 
 
-def crop_rs(x, box, n=R):
+def crop_resize(x, box, n=R):
     """crop box (X0, Y0, side) of a full-frame map and resize it to n x n (float32; area when shrinking, else cubic)."""
     X0, Y0, side = box
     c = x[Y0:Y0 + side, X0:X0 + side]
@@ -72,12 +72,12 @@ def crop_rs(x, box, n=R):
 
 
 # ------------------------------------------------------------------------------------------------ colour
-def lab(x):
+def rgb_to_lab(x):
     """sRGB float [0, 1] (H, W, 3) -> CIELAB (OpenCV float convention: L 0-100, a / b ~ -127-127)."""
     return cv2.cvtColor(np.clip(x, 0, 1).astype(np.float32), cv2.COLOR_RGB2LAB)
 
 
-def rgb(L):
+def lab_to_rgb(L):
     """CIELAB (H, W, 3) -> sRGB float [0, 1] (clipped)."""
     return np.clip(cv2.cvtColor(L.astype(np.float32), cv2.COLOR_LAB2RGB), 0, 1)
 
@@ -102,7 +102,7 @@ def to_device(arrs, dev):
     return out
 
 
-def from_t(h, i=0):
+def tensor_to_image(h, i=0):
     """(B, 3, H, W) tensor in [-1, 1] -> (H, W, 3) float32 numpy in [0, 1] of item i; the affine map and the clip run on the
     tensor's device and only the result is copied (same values as ((h[i].permute(1, 2, 0).cpu().numpy() + 1) / 2).clip(0, 1)
     for a float32 h)."""

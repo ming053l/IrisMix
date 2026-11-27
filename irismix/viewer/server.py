@@ -31,7 +31,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageOps
 
 from irismix import config, layer_recover as LR, edits as ED
-from irismix.utils import u8
+from irismix.utils import to_uint8
 from irismix.viewer.engine import SLOTS
 
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
@@ -78,7 +78,7 @@ def find_examples(extra=None):
 
 
 def layer_png(at, F):
-    return png(u8(F)), png(u8(at))
+    return png(to_uint8(F)), png(to_uint8(at))
 
 
 class App:
@@ -110,8 +110,8 @@ class App:
 
     def _base_images(self):
         o = self.E.out; w = o['w']
-        d = dict(photo=png(u8(o['photo'])), target=png(u8(o['target'])), paste=png(u8(o['paste'])), result=png(u8(o['result'])),
-                 masks=png(u8(np.stack([w[0], w[1], w[2]], -1))), masks2=png(u8(np.stack([w[3], w[4], 0 * w[4]], -1))))
+        d = dict(photo=png(to_uint8(o['photo'])), target=png(to_uint8(o['target'])), paste=png(to_uint8(o['paste'])), result=png(to_uint8(o['result'])),
+                 masks=png(to_uint8(np.stack([w[0], w[1], w[2]], -1))), masks2=png(to_uint8(np.stack([w[3], w[4], 0 * w[4]], -1))))
         d['F'], d['alpha'] = layer_png(o['alpha'], o['F'])
         if o.get('bare') is not None: d['bare'] = png(o['bare'])
         if o.get('free') is not None: d['free'] = png(o['free'])
@@ -149,7 +149,7 @@ class App:
         with self.E.lock:
             lid = self.E.keep_look(p.get('edits') or {}, p.get('name'))
             l = self.E.looks[-1]; T = self.E.out['target']
-            im = ED.compose(l['alpha'], l['F'], T); t = Image.fromarray(u8(im)); t.thumbnail((240, 240))
+            im = ED.compose(l['alpha'], l['F'], T); t = Image.fromarray(to_uint8(im)); t.thumbnail((240, 240))
             self.cache[f'look_{lid}'] = png(np.asarray(t)); self.v['looks'] += 1
 
     def stack(self, p):
@@ -278,12 +278,12 @@ class App:
             if lip is not None: layers.append(lip)
             img = T.copy()
             for a, F in layers: img = ED.compose(a, F, img)
-            img = u8(img)
+            img = to_uint8(img)
             d = os.path.join(self.out_dir, time.strftime('%Y%m%d-%H%M%S')); os.makedirs(d, exist_ok=True)
             Image.fromarray(img).save(f'{d}/edited.png')
-            Image.fromarray(u8(o['result'])).save(f'{d}/result.png'); Image.fromarray(u8(o['paste'])).save(f'{d}/paste.png')
+            Image.fromarray(to_uint8(o['result'])).save(f'{d}/result.png'); Image.fromarray(to_uint8(o['paste'])).save(f'{d}/paste.png')
             LR.save(f'{d}/layer.npz', o['alpha'], o['F'])
-            Image.fromarray(np.dstack([u8(o['F']), u8(o['alpha'])])).save(f'{d}/layer.png')
+            Image.fromarray(np.dstack([to_uint8(o['F']), to_uint8(o['alpha'])])).save(f'{d}/layer.png')
             with open(f'{d}/edits.json', 'w') as f: json.dump(dict(p, caption=o.get('caption', ''), options=E.opts), f, indent=1)
         print('[viewer] exported', d, flush=True)
         return png(img), d

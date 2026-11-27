@@ -15,7 +15,7 @@ Per-source results are cached (read-only arrays; source_conditions returns a sha
 import numpy as np, cv2
 
 from irismix import rules, face_parts as FP
-from irismix.utils import R, face_box, crop_rs, image_key, read_only
+from irismix.utils import R, face_box, crop_resize, image_key, read_only
 
 RS = 256          # resolution of the low-frequency maps and the crops
 EYE_L_C, EYE_R_C = (33, 133), (362, 263)            # eye corners (outer, inner) / (inner, outer) in MediaPipe order
@@ -45,7 +45,7 @@ def support_and_hair(prob, pt):
 def _support_and_hair(prob, pt):
     support, hair = rules.target_mask(prob)
     breg = rules.brow_region(pt, prob.shape[1:])
-    hb = np.isin(rules.argmax0(prob), rules.HAIR).astype(np.uint8)
+    hb = np.isin(rules.label_map(prob), rules.HAIR).astype(np.uint8)
     nlab, lab = cv2.connectedComponents(hb)
     keep = np.zeros(nlab, bool); keep[np.unique(lab[(hb > 0) & (breg < 0.05)])] = True; keep[0] = False
     hair = hair * (1 - breg) + hair * breg * keep[lab].astype(np.float32)
@@ -115,15 +115,15 @@ def _source_conditions(S, p3=None, prob=None):
     sc = R / side
     p = ((p3[:, :2] - np.array([X0, Y0], np.float32)) * sc).astype(np.float32)   # landmarks in the 512 crop
     support, hair = support_and_hair(prob, p3[:, :2])
-    lab = rules.argmax0(prob)
-    w = FP.rule_parts(p)
-    face = FP.poly(cv2.convexHull(np.concatenate([p[FP.FACE_OVAL], p[FP.FACE_OVAL].mean(0) + 1.75 * (p[FP.UPPER_OVAL] - p[FP.FACE_OVAL].mean(0))]).astype(np.float32))[:, 0], 0, 2)
+    lab = rules.label_map(prob)
+    w = FP.landmark_part_weights(p)
+    face = FP.polygon_mask(cv2.convexHull(np.concatenate([p[FP.FACE_OVAL], p[FP.FACE_OVAL].mean(0) + 1.75 * (p[FP.UPPER_OVAL] - p[FP.FACE_OVAL].mean(0))]).astype(np.float32))[:, 0], 0, 2)
     code = np.array([1.0, 0.8, 0.6, 0.2, 0.4], np.float32)           # lips, eyes, brows, face, forehead
     pid = code[w.argmax(0)] * face
     op = openness(p3)
     opm = np.zeros((R, R), np.float32)
     for k, (eye, o) in enumerate(((FP.EYE_L, op[0]), (FP.EYE_R, op[1]))):
-        e = p[eye]; reg = FP.poly(cv2.convexHull(FP.scale(e, np.array([1.6, 2.4], np.float32)).astype(np.float32))[:, 0], 0, 3)
+        e = p[eye]; reg = FP.polygon_mask(cv2.convexHull(FP.scale_about_centre(e, np.array([1.6, 2.4], np.float32)).astype(np.float32))[:, 0], 0, 3)
         opm = np.maximum(opm, reg * np.clip(o * 2, 0, 1))
     m = np.full((R, R), 255, np.uint8)
     for g in (CREASE_L, CREASE_R): cv2.polylines(m, [np.round(p[g]).astype(np.int32)], False, 0, 1)
@@ -132,15 +132,15 @@ def _source_conditions(S, p3=None, prob=None):
     for i in (33, 133, 362, 263):
         cv2.circle(corners, tuple(int(round(v)) for v in p[i]), 3, 1.0, -1)
     corners = np.clip(cv2.GaussianBlur(corners, (0, 0), 3) * 3, 0, 1)
-    eyeball = crop_rs(np.isin(lab, rules.EYES).astype(np.float32), box)
-    glasses = crop_rs((lab == rules.GLASSES).astype(np.float32), box)
+    eyeball = crop_resize(np.isin(lab, rules.EYES).astype(np.float32), box)
+    glasses = crop_resize((lab == rules.GLASSES).astype(np.float32), box)
     nrm = _normals(np.c_[p, p3[:, 2] * sc].astype(np.float64), R)
     dn = lambda x: cv2.resize(x, (RS, RS), interpolation=cv2.INTER_AREA)
     return dict(box=box, p=p, p3=p3, open=op, support=support, hair=hair,
                 S1=signed_S1(p),
                 S2=dn(np.stack([pid, opm, np.zeros_like(pid)], -1)),
                 S3=dn(np.stack([crease, corners, eyeball], -1)),
-                G1=dn(nrm), G2=dn(np.stack([crop_rs(hair, box), glasses, crop_rs(support, box)], -1)))
+                G1=dn(nrm), G2=dn(np.stack([crop_resize(hair, box), glasses, crop_resize(support, box)], -1)))
 
 
 def set_removed(cond, A512, av512):

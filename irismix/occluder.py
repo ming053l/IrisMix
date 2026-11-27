@@ -66,7 +66,7 @@ def remove(pipe, W8, cls, seed=0):
     raw = pipe(image=Image.fromarray(W8), prompt=PROMPTS[cls], num_inference_steps=4, guidance_scale=1.0,
                width=(w // 16) * 16, height=(h // 16) * 16, generator=torch.Generator(pipe.device).manual_seed(seed)).images[0]
     E = np.asarray(raw.resize((w, h), Image.LANCZOS).convert('RGB'))
-    la, le = rules.argmax0(rules.parse(W8)), rules.argmax0(rules.parse(E))
+    la, le = rules.label_map(rules.parse(W8)), rules.label_map(rules.parse(E))
     if cls == 'glasses': R = (la == rules.GLASSES) | (le == rules.GLASSES)
     else: R = np.isin(la, rules.HAIR) & _forehead_band(la) | _forehead_band(la) & (np.abs(E.astype(int) - W8).max(-1) > 40)
     near = cv2.dilate(R.astype(np.uint8), np.ones((31, 31), np.uint8)) > 0
@@ -100,7 +100,7 @@ def restore(W8, B8, R, cls):
     if cls == 'bangs':
         t = (1 - a) ** 3 * (1 - np.clip(pr[rules.HAIR].sum(0), 0, 1) * (a > 0))
     else:
-        gb = (rules.argmax0(pr) == rules.GLASSES).astype(np.uint8); fw = W8.shape[1]
+        gb = (rules.label_map(pr) == rules.GLASSES).astype(np.uint8); fw = W8.shape[1]
         r = max(3, int(round(fw * 0.022))); ring = gb - cv2.erode(gb, np.ones((2 * r + 1, 2 * r + 1), np.uint8))
         side = cv2.dilate(gb, np.ones((5, max(9, int(round(fw * 0.07)))), np.uint8)) * (1 - gb)
         g = cv2.GaussianBlur(np.clip(ring + side, 0, 1).astype(np.float32), (0, 0), 1.5)
