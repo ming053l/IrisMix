@@ -27,16 +27,18 @@ def closed_form_alpha(W, K):
 
 
 class Decomposer:
-    def __init__(self, ckpt=None, dev='cuda', base_model=None, lora_init=None, cache_dir=None, skip_text_encoder=False):
+    def __init__(self, ckpt=None, dev='cuda', base_model=None, lora_init=None, cache_dir=None, skip_text_encoder=True):
         import torch
         from irismix import flux
         self.torch, self.dev = torch, dev
         cache = os.path.join(cache_dir or config.CACHE_DIR, 'decomposer_prompt_embeds.pt')
         pipe = flux.load_pipeline(dev, base_model=base_model, lora_init=lora_init,
-                                  skip_text_encoder=skip_text_encoder and os.path.exists(cache))   # only with cached embeddings
+                                  skip_text_encoder=skip_text_encoder and os.path.exists(cache))   # with cached embeddings the
+        # 4B text encoder is not loaded here; a renderer sharing this pipeline adds it when it needs it (flux.load_pipeline)
         # prompt embeddings: cached on disk, so the 4B text encoder never has to sit on the GPU
         if os.path.exists(cache): emb = torch.load(cache, weights_only=True)
         else:
+            if pipe.text_encoder is None: pipe = flux.load_pipeline(dev, base_model=base_model, lora_init=lora_init)
             pipe.text_encoder.to(dev)
             with torch.no_grad():
                 emb = {k: tuple(x.cpu() for x in pipe.encode_prompt(prompt=v, device=dev)) for k, v in (('E', flux.P_E), ('H', flux.P_H))}

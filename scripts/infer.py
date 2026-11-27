@@ -8,8 +8,8 @@
   python scripts/infer.py ... --strength 0.6 --recolour lips=#b0303a --hue eyes=40 --off forehead
 
 Outputs in --out: result.png (rendered result), paste.png (warp-only composite), layer.npz (alpha~, F' float16) and
-layer.png (RGBA), edited.png when an edit is given. The decomposer runs first and is unloaded before the renderer, so one 24 GB GPU is
-enough. Sampler: config.SIGMA / STEPS / OMEGA_R (0.65, one Euler step, 2 px)."""
+layer.png (RGBA), edited.png when an edit is given. The decomposer and the renderer share one base pipeline (the weights are
+read once, straight into GPU memory), so a GPU with about 16 GB free is enough. Sampler: config.SIGMA / STEPS / OMEGA_R (0.65, one Euler step, 2 px)."""
 import argparse, gc, os, sys
 import numpy as np
 from PIL import Image
@@ -64,7 +64,7 @@ def main():
         ap.error(str(e))
     os.makedirs(a.out, exist_ok=True)
     import torch
-    from irismix import decomposer as DEC, pipeline as PL, render as RD, layer_recover as LR
+    from irismix import decomposer as DEC, flux, pipeline as PL, render as RD, layer_recover as LR
     from irismix.utils import u8
     rules.LMK_FALLBACK = True                                    # in-the-wild photos: low-confidence landmark retry
     S = read_rgb(a.src)
@@ -72,7 +72,8 @@ def main():
     groups = {a.ref: None} if a.ref else {}
     for p, f in per_part.items(): groups.setdefault(f, []).append(p)
 
-    # ---- decomposer: decompose every reference
+    # ---- decomposer: decompose every reference (meanwhile the kernel reads the renderer's text encoder from disk)
+    if not a.warp_only: flux.prefetch(a.base_model, 'text_encoder')
     s1 = DEC.Decomposer(a.decomposer, a.device, base_model=a.base_model, lora_init=a.lora_init, cache_dir=a.cache_dir)
     refs = []
     for f, ps in groups.items():
@@ -95,7 +96,8 @@ def main():
     from irismix.renderer import Renderer
     rm = Renderer(a.device, ckpt=a.renderer, base_model=a.base_model, lora_init=a.lora_init); rm.skips.eval()
     with torch.autocast(torch.device(a.device).type, dtype=torch.bfloat16): rm.text([it['text']])   # cached embedding
-    rm.p.text_encoder.to('cpu'); torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    rm.p.text_encoder = None; gc.collect()                      # caption encoded: free the 4B encoder (no copy back to the CPU)
+    torch.cuda.empty_cache() if torch.cuda.is_available() else None
     H5 = RD.render_one(rm, arr, it['text'], sigma=a.sigma, steps=a.steps, seed=a.seed)
     I, _ = RD.compose_full(S, C, H5, info, av)
     Image.fromarray(u8(I)).save(f'{a.out}/result.png', compress_level=1)   # lossless; level 1 writes ~4x faster

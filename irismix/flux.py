@@ -138,25 +138,68 @@ def load_lora_ckpt(pipe, path_or_sd, skips=None, prefix='skips.'):
 _PIPES = {}                    # (base model, LoRA init, device) -> shared pipeline
 
 
+def _placement(dev):
+    """from_pretrained arguments that load the weights straight onto a CUDA device (no staging copy in host RAM)."""
+    return dict(device_map=str(dev)) if torch.device(dev).type == 'cuda' else {}
+
+
+def _load_text_encoder(base, dev):
+    """the Qwen3 text encoder and its tokenizer of the base model, the encoder loaded straight onto dev."""
+    from transformers import AutoTokenizer, Qwen3ForCausalLM
+    te = Qwen3ForCausalLM.from_pretrained(base, subfolder='text_encoder', torch_dtype=torch.bfloat16, **_placement(dev))
+    return te.eval(), AutoTokenizer.from_pretrained(base, subfolder='tokenizer')
+
+
 def load_pipeline(dev, text_encoder=False, base_model=None, lora_init=None, skip_text_encoder=False, shared=True):
     """FLUX.2-klein-4B (bf16) with the rank-32 LoRA modules of step A; transformer and VAE on dev (text encoder too when
     asked; otherwise it stays on the CPU). skip_text_encoder: do not load it at all (prompt embeddings come from a cache).
     shared: the decomposer and the renderer use the SAME base pipeline (they differ only in the LoRA tensors and the skip
     convs, which each model keeps and copies in with use_lora before it runs), so switching between them does not reload
-    the 4B transformer and the VAE from disk. release_pipelines() frees it."""
+    the 4B transformer and the VAE from disk. A shared pipeline loaded without its text encoder gets only the encoder added
+    when a later caller needs it. On a CUDA device the weights are read straight into GPU memory. release_pipelines() frees
+    it."""
     from irismix import config
     key = (base_model or config.BASE_MODEL, os.path.abspath(lora_init or config.LORA_INIT), str(dev))
     pipe = _PIPES.get(key) if shared else None
-    if pipe is None or (pipe.text_encoder is None and not skip_text_encoder):
-        from diffusers import Flux2KleinPipeline
-        kw = dict(text_encoder=None, tokenizer=None) if skip_text_encoder else {}
-        pipe = Flux2KleinPipeline.from_pretrained(key[0], torch_dtype=torch.bfloat16, **kw)
+    if pipe is None:
+        from diffusers import AutoencoderKLFlux2, Flux2KleinPipeline, Flux2Transformer2DModel
+        on = _placement(dev)
+        comp = dict(transformer=Flux2Transformer2DModel.from_pretrained(key[0], subfolder='transformer', torch_dtype=torch.bfloat16, **on),
+                    vae=AutoencoderKLFlux2.from_pretrained(key[0], subfolder='vae', torch_dtype=torch.bfloat16, **on))
+        if skip_text_encoder: comp.update(text_encoder=None, tokenizer=None)
+        else: comp['text_encoder'], comp['tokenizer'] = _load_text_encoder(key[0], dev if text_encoder else 'cpu')
+        pipe = Flux2KleinPipeline.from_pretrained(key[0], torch_dtype=torch.bfloat16, **comp)
         lora = key[1]
         pipe.load_lora_weights(os.path.dirname(lora), weight_name=os.path.basename(lora))
         pipe.transformer.to(dev); pipe.vae.to(dev); pipe._irismix_lora = None
         if shared: _PIPES[key] = pipe
+    elif pipe.text_encoder is None and not skip_text_encoder:
+        pipe.text_encoder, pipe.tokenizer = _load_text_encoder(key[0], dev if text_encoder else 'cpu')
     if text_encoder: pipe.text_encoder.to(dev)
     return pipe
+
+
+
+def prefetch(base_model=None, subfolder='text_encoder'):
+    """ask the kernel to start reading a component's weight files into the page cache in the background (readahead), so a
+    later load does not wait on the disk; nothing is pinned or copied, and a missing local copy is simply skipped."""
+    import glob
+    from irismix import config
+    base = base_model or config.BASE_MODEL
+    d = os.path.join(base, subfolder) if os.path.isdir(base) else None
+    if d is None:
+        try:
+            from huggingface_hub import snapshot_download
+            d = os.path.join(snapshot_download(base, allow_patterns=[f'{subfolder}/*'], local_files_only=True), subfolder)
+        except Exception:
+            return
+    for f in glob.glob(os.path.join(d, '*.safetensors')):
+        try:
+            fd = os.open(f, os.O_RDONLY)
+            try: os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_WILLNEED)
+            finally: os.close(fd)
+        except (OSError, AttributeError):                  # no posix_fadvise (Windows / macOS): nothing to do
+            return
 
 
 def release_pipelines():

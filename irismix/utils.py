@@ -91,8 +91,11 @@ def to_device(arrs, dev):
     pin = str(dev).startswith('cuda')
     out = {}
     for k, x in arrs.items():
-        t = torch.from_numpy(np.ascontiguousarray(x))
-        if pin: t = t.pin_memory()
+        x = np.ascontiguousarray(x)
+        if pin:                                               # one copy, straight into page-locked memory
+            t = torch.empty(x.shape, dtype=torch.from_numpy(x[:0].copy()).dtype, pin_memory=True); t.numpy()[...] = x
+        else:
+            t = torch.from_numpy(x if x.flags.writeable else x.copy())   # cached arrays are read-only
         t = t.to(dev, non_blocking=pin)
         if t.ndim == 2: t = t[..., None].expand(-1, -1, 3)
         out[k] = (t.permute(2, 0, 1) * 2 - 1)[None]

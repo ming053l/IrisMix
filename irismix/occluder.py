@@ -33,10 +33,14 @@ def load_editor(dev='cuda', base_model=None, share=None):
     """the base FLUX.2-klein pipeline. share: a loaded pipeline of the same base model (e.g. the renderer's) whose
     text encoder, tokenizer and VAE are reused, so only the plain transformer is loaded again (about 9 GB less)."""
     import torch
-    from diffusers import Flux2KleinPipeline
+    from diffusers import Flux2KleinPipeline, Flux2Transformer2DModel
     from irismix import config
+    from irismix.flux import _placement
+    base = base_model or config.BASE_MODEL
     kw = dict(text_encoder=share.text_encoder, tokenizer=share.tokenizer, vae=share.vae) if share is not None else {}
-    pipe = Flux2KleinPipeline.from_pretrained(base_model or config.BASE_MODEL, torch_dtype=torch.bfloat16, **kw)
+    kw['transformer'] = Flux2Transformer2DModel.from_pretrained(base, subfolder='transformer', torch_dtype=torch.bfloat16,
+                                                                **_placement(dev))   # read straight into GPU memory
+    pipe = Flux2KleinPipeline.from_pretrained(base, torch_dtype=torch.bfloat16, **kw)
     pipe.transformer.to(dev); pipe.vae.to(dev); pipe.text_encoder.to(dev)
     pipe.set_progress_bar_config(disable=True)
     return pipe

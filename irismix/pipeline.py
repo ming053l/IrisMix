@@ -9,10 +9,19 @@ whole layer (parts None). End to end:
   5. layer_recover.layer_from_render: closed-form layer (alpha~, F') of the render for edits
   6. part_masks + apply_edits: closed-form edits of that layer (strength, part toggles, recolour, hue)
 Steps 2, 3, 5 and 6 run on the CPU (face parsing on the GPU when available)."""
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np, cv2
 
 from irismix import decomposer as DEC, render as RD, captions as CP, rules, edits as ED, layer_recover as LR, face_parts as FP
 from irismix.utils import face_box, lab
+
+
+def _each(fn, items):
+    """fn over the items in worker threads (the per-image caches are lock-protected; OpenCV and NumPy release the GIL),
+    results in input order. Every item is computed exactly as in a plain loop, so the outputs do not change."""
+    items = list(items)
+    if len(items) < 2: return [fn(x) for x in items]
+    with ThreadPoolExecutor(max_workers=min(len(items), 4)) as ex: return list(ex.map(fn, items))
 
 
 def decompose(s1, ref):
@@ -44,11 +53,12 @@ def move_layer(a, K, M, shape, support=None):
 def paste(S, refs):
     """warp-only composite. refs: list of dict(layer=decompose(...), parts=None | [part, ...], M=None | 2x3 affine of
     design_transform). -> (C float [0, 1], av combined visible coverage, per-reference transfer results) or raises ValueError."""
-    tps = []; sup = None
-    for r in refs:
+    def transfer(r):
         L = r['layer']
-        tp = rules.transfer_layer((L['a'], L['F'], L['w']), L['Br'], L['Im'], S, parts=r['parts'], check_glasses=False,
-                               design_only=True, min_design=False, lip_mode='recolour')
+        return rules.transfer_layer((L['a'], L['F'], L['w']), L['Br'], L['Im'], S, parts=r['parts'], check_glasses=False,
+                                    design_only=True, min_design=False, lip_mode='recolour')
+    tps = []; sup = None
+    for r, tp in zip(refs, _each(transfer, refs)):           # the references are transferred in parallel
         if 'error' in tp: raise ValueError(f"transfer failed ({tp['error']}) for parts {r['parts'] or 'all'}")
         if r.get('M') is not None:                            # repositioned design, kept on paintable skin
             if sup is None: sup = LR.support_of(S)[0]
@@ -69,19 +79,24 @@ def look_item(S, refs, C, av):
     g = np.full((256, 256, 3), 0.5, np.float32); crops = dict(lip=g, eyeL=g, eyeR=g); cap = {}
     single = len(refs) == 1 and refs[0]['parts'] is None
     order = lambda r: -1 if r['parts'] is None else min(RD.ORDER[p] for p in r['parts'])
-    for r in sorted(refs, key=order):
+
+    def per_ref(r):                                           # everything that depends on one reference only
         L, ps = r['layer'], r['parts']
         a = L['a']
         if ps is not None:                                    # whole design units of the requested parts
             a = a * np.maximum(RD.unit_mask(a, L['w'], ps), np.clip(sum(L['w'][RD.NAMES.index(p)] for p in ps), 0, 1))
         aw, Pw = RD.warp_full(a, L['F'], L['Br'], S)
         if r.get('M') is not None: aw, Pw = move_layer(aw, Pw, r['M'], S.shape)
+        rc = RD.ref_side(L['Im'], L['Br'], L['a'], L['F']) if ps is None or set(ps) & {'lips', 'eyes'} else None
+        return aw, Pw, rc, RD.layer_caption(L['Im'], L['Br'], L['a'], L['F'], ps)
+    ordered = sorted(refs, key=order)
+    for r, (aw, Pw, rc, c) in zip(ordered, _each(per_ref, ordered)):   # computed in parallel, folded in paint order
+        ps = r['parts']
         K = Pw + (1 - aw[..., None]) * K; A = aw + (1 - aw) * A
-        if ps is None or set(ps) & {'lips', 'eyes'}:
-            rc = RD.ref_side(L['Im'], L['Br'], L['a'], L['F'])
+        if rc is not None:
             if ps is None or 'lips' in ps: crops['lip'] = rc['lip']
             if ps is None or 'eyes' in ps: crops['eyeL'], crops['eyeR'] = rc['eyeL'], rc['eyeR']
-        cap.update(RD.layer_caption(L['Im'], L['Br'], L['a'], L['F'], ps))
+        cap.update(c)
     parts = None if single else sorted({p for r in refs for p in (r['parts'] or RD.NAMES)})
     return dict(S=S, C=C, av=av, A=A, K=K, crops=crops, text=CP.caption_text(cap), parts=parts)
 
