@@ -37,7 +37,8 @@ def load_editor(dev='cuda', base_model=None, share=None):
     from irismix import config
     from irismix.flux import _placement
     base = base_model or config.BASE_MODEL
-    kw = dict(text_encoder=share.text_encoder, tokenizer=share.tokenizer, vae=share.vae) if share is not None else {}
+    kw = dict(vae=share.vae) if share is not None else {}
+    if share is not None and share.text_encoder is not None: kw.update(text_encoder=share.text_encoder, tokenizer=share.tokenizer)
     kw['transformer'] = Flux2Transformer2DModel.from_pretrained(base, subfolder='transformer', torch_dtype=torch.bfloat16,
                                                                 **_placement(dev))   # read straight into GPU memory
     pipe = Flux2KleinPipeline.from_pretrained(base, torch_dtype=torch.bfloat16, **kw)

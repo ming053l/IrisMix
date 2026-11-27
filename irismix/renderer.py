@@ -12,7 +12,9 @@ when v is learned. Output used as a masked residual: out = C + Omega (dec(x_0) -
 
 GPU work per sample: one VAE encode per condition (11; only C keeps encoder features for the skips), STEPS transformer
 evaluations, one decode. Position ids and the output grid are built once per shape on the device; prompt embeddings are
-cached per text (Renderer.text)."""
+cached per text (Renderer.text): in memory for the process and on disk (<cache>/caption_embeds, IRISMIX_CAPTION_CACHE_MB,
+default 512, 0 = off), so the 4B text encoder is loaded and moved to the GPU only for a caption it has not seen."""
+import collections, hashlib, os
 import numpy as np, torch
 
 from irismix.flux import OneStep, Skips, load_lora_ckpt, load_pipeline, load_state, lora_state, use_lora, unpack_grid
@@ -21,12 +23,35 @@ ALIGNED = ('C', 'K', 'A')
 MAPS = ('S1', 'S2', 'S3', 'G1', 'G2')
 CROPS = ('lip', 'eyeL', 'eyeR')
 TXT_LEN = 256
+_EMB = collections.OrderedDict()   # (base model, caption) -> (embeddings, text ids) on the CPU, shared by Renderer instances
+_EMB_MAX = 256
+
+
+def _caption_file(base, text):
+    from irismix import config
+    mb = float(os.environ.get('IRISMIX_CAPTION_CACHE_MB', '512'))
+    if mb <= 0: return None, 0
+    h = hashlib.sha1(f'{base}\n{TXT_LEN}\n{text}'.encode()).hexdigest()
+    return os.path.join(config.CACHE_DIR, 'caption_embeds', f'{h}.pt'), mb
+
+
+def _prune(d, mb):
+    """keep the on-disk caption cache under mb megabytes (oldest files first)."""
+    fs = sorted((os.path.join(d, f) for f in os.listdir(d) if f.endswith('.pt')), key=os.path.getmtime)
+    tot = sum(os.path.getsize(f) for f in fs)
+    while fs and tot > mb * 2 ** 20:
+        f = fs.pop(0); tot -= os.path.getsize(f); os.remove(f)
 
 
 class Renderer:
     """ckpt: renderer checkpoint."""
     def __init__(self, dev='cuda', ckpt=None, text_encoder=True, base_model=None, lora_init=None):
-        pipe = load_pipeline(dev, text_encoder, base_model=base_model, lora_init=lora_init)   # rank-32 LoRA modules
+        """text_encoder=False: never encode new captions (only cached embeddings can be used)."""
+        from irismix import config
+        # rank-32 LoRA modules; the text encoder is added to the shared pipeline only when a caption is not cached
+        pipe = load_pipeline(dev, False, base_model=base_model, lora_init=lora_init, skip_text_encoder=True)
+        self._load = dict(base_model=base_model, lora_init=lora_init); self.base = base_model or config.BASE_MODEL
+        self.allow_text_encoder = text_encoder
         self.p, self.dev = pipe, dev
         self.one_step = OneStep(pipe, dev, emb={}, skips=False)
         self.mu, self.sd = self.one_step.mu, self.one_step.sd
@@ -44,14 +69,39 @@ class Renderer:
     # -------------------------------------------------------------------------------------------- text
     @torch.no_grad()
     def text(self, prompts):
+        """prompt embeddings and text ids on the device; exactly what encode_prompt returns (cached copies are bitwise equal)."""
         out = []
         for s in prompts:
             if s not in self.emb_cache:
-                e, i = self.p.encode_prompt(prompt=s, device=self.dev, max_sequence_length=TXT_LEN)
-                if len(self.emb_cache) > 4096: self.emb_cache.clear()
-                self.emb_cache[s] = (e, i)
+                if len(self.emb_cache) > 64: self.emb_cache.clear()
+                self.emb_cache[s] = tuple(x.to(self.dev) for x in self._embedding(s))
             out.append(self.emb_cache[s])
         return torch.cat([o[0] for o in out]), torch.cat([o[1] for o in out])
+
+    def _embedding(self, s):
+        key = (self.base, s)
+        if key in _EMB: _EMB.move_to_end(key); return _EMB[key]
+        f, mb = _caption_file(self.base, s)
+        e = None
+        if f and os.path.exists(f):
+            try: e = tuple(torch.load(f, map_location='cpu', weights_only=True))
+            except Exception: e = None                        # a damaged file is recomputed
+        if e is None:
+            if not self.allow_text_encoder: raise RuntimeError('caption not cached and the text encoder is disabled')
+            self.p = load_pipeline(self.dev, True, **self._load)  # adds / moves the text encoder (shared pipeline)
+            e = tuple(x.cpu() for x in self.p.encode_prompt(prompt=s, device=self.dev, max_sequence_length=TXT_LEN))
+            if f:
+                os.makedirs(os.path.dirname(f), exist_ok=True)
+                part = f'{f}.{os.getpid()}.part'; torch.save(e, part); os.replace(part, f)
+                _prune(os.path.dirname(f), mb)
+        _EMB[key] = e
+        while len(_EMB) > _EMB_MAX: _EMB.popitem(last=False)
+        return e
+
+    def park_text_encoder(self):
+        """after the captions are encoded: move the text encoder (if loaded) off the GPU."""
+        te = getattr(self.p, 'text_encoder', None)
+        if te is not None: te.to('cpu')
 
     # -------------------------------------------------------------------------------------------- tokens
     def enc(self, x, feats=True): return self.one_step.enc(x, feats)

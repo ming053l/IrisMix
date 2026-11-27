@@ -132,7 +132,7 @@ class IrisMixRender:
         arr, info = RD.prepare(it)
         rm = _renderer()
         with torch.no_grad(), torch.autocast(torch.device(_dev()).type, dtype=torch.bfloat16): rm.text([it['text']])
-        rm.p.text_encoder.to('cpu')
+        rm.park_text_encoder()
         if torch.cuda.is_available(): torch.cuda.empty_cache()
         H5 = RD.render_one(rm, arr, it['text'], sigma=config.SIGMA, steps=config.STEPS, seed=seed)
         I, _ = RD.compose_full(S, C, H5, info, av)

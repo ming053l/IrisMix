@@ -129,6 +129,7 @@ class App:
             with self.E.lock: self.E.set_ref(slot, img)
         t = Image.fromarray(img); t.thumbnail((320, 320))
         self.cache[f'thumb_{slot}'] = png(np.asarray(t))
+        if getattr(self.E, 'auto_preload', False): self.E.preload()          # weights load while the user picks the rest
         if slot == 'whole':
             for s in SLOTS[1:]: self.cache.pop(f'thumb_{s}', None)
         elif slot != 'source': self.cache.pop('thumb_whole', None)

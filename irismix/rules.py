@@ -67,7 +67,7 @@ def _seg():
     from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
     if SEG is None:
         dev = seg_device()
-        if dev == 'cpu': torch.set_num_threads(SEG_THREADS or min(16, os.cpu_count() or 1))
+        if dev == 'cpu': torch.set_num_threads(SEG_THREADS or int(os.environ.get('IRISMIX_THREADS') or 0) or min(16, os.cpu_count() or 1))
         kw = dict(revision=config.PARSER_REVISION)
         SEG = (SegformerImageProcessor.from_pretrained(config.PARSER_ID, **kw),
                SegformerForSemanticSegmentation.from_pretrained(config.PARSER_ID, **kw).eval().to(dev))

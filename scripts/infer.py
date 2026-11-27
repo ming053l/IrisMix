@@ -11,11 +11,13 @@ Outputs in --out: result.png (rendered result), paste.png (warp-only composite),
 layer.png (RGBA), edited.png when an edit is given. The decomposer and the renderer share one base pipeline (the weights are
 read once, straight into GPU memory), so a GPU with about 16 GB free is enough. Sampler: config.SIGMA / STEPS / OMEGA_R (0.65, one Euler step, 2 px)."""
 import argparse, gc, os, sys
-import numpy as np
-from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from irismix import config, rules                             # noqa: E402
+from irismix import config                                    # noqa: E402
+config.limit_cpu_threads()                                    # before numpy / torch start their thread pools
+import numpy as np                                            # noqa: E402
+from PIL import Image                                         # noqa: E402
+from irismix import rules                                     # noqa: E402
 
 PARTS = ('eyes', 'lips', 'face', 'forehead')
 
@@ -96,7 +98,7 @@ def main():
     from irismix.renderer import Renderer
     rm = Renderer(a.device, ckpt=a.renderer, base_model=a.base_model, lora_init=a.lora_init); rm.skips.eval()
     with torch.autocast(torch.device(a.device).type, dtype=torch.bfloat16): rm.text([it['text']])   # cached embedding
-    rm.p.text_encoder = None; gc.collect()                      # caption encoded: free the 4B encoder (no copy back to the CPU)
+    rm.p.text_encoder = None; gc.collect()                      # caption encoded (or cached): free the 4B encoder if loaded
     torch.cuda.empty_cache() if torch.cuda.is_available() else None
     H5 = RD.render_one(rm, arr, it['text'], sigma=a.sigma, steps=a.steps, seed=a.seed)
     I, _ = RD.compose_full(S, C, H5, info, av)

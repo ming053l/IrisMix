@@ -12,7 +12,9 @@ Editing (closed form, also live in the browser): per-part strength, recolour, hu
 in order or blend linearly; shade try-on adds foundation / blush under the look and a lipstick on top.
 
 Decompositions are cached by image content (a reference is decomposed once and reused across photos and looks).
-Models load on first use; keep_models=False (default, about 24 GB) holds one network on the GPU at a time."""
+Models load on first use (or in the background as soon as a photo is uploaded, preload()); keep_models=False (default,
+about 24 GB) holds one network on the GPU at a time. start_idle_release(minutes) gives the GPU memory back after that many
+idle minutes; the next render loads the models again."""
 import collections, ctypes, gc, hashlib, sys, threading, time
 import numpy as np, cv2
 
@@ -47,18 +49,20 @@ class Engine:
         self.looks = []                     # kept looks: dict(id, name, alpha, F)
         self.face = None                    # shades.Face of the target (lazy)
         self.status = dict(busy=False, stage='idle', log=[], error=None)
+        self.model_lock = threading.RLock()   # loading / dropping networks (a background preload must not block uploads)
+        self.last_use = time.time()
         rules.LMK_FALLBACK = True              # in-the-wild photos: low-confidence landmark retry
 
     # ------------------------------------------------------------------ inputs
     def set_source(self, img):
-        self.src = img; self.out = {}; self.looks = []; self.face = None
+        self.src = img; self.out = {}; self.looks = []; self.face = None; self.last_use = time.time()
 
     def set_ref(self, slot, img):
         if slot not in SLOTS: raise ValueError(f'unknown slot {slot}')
         if img is None: self.refs.pop(slot, None); return
         if slot == 'whole': self.refs = {}
         else: self.refs.pop('whole', None)
-        self.refs[slot] = (image_sha1(img), img)
+        self.refs[slot] = (image_sha1(img), img); self.last_use = time.time()
 
     def set_options(self, **o):
         if 'target' in o and o['target'] not in TARGETS: raise ValueError(f'unknown target {o["target"]}')
@@ -106,7 +110,55 @@ class Engine:
             pass
         return m
 
+    def _gpu_loaded(self):
+        return bool(self.models) or bool(getattr(sys.modules.get('irismix.flux'), '_PIPES', None))
+
+    def preload(self, min_free_gb=14.0):
+        """load the decomposer (and with it the shared base pipeline) in a background thread when nothing is loaded yet and
+        the GPU has room, so the first Render after an upload does not wait for the weights. Uploads are not blocked."""
+        if self.status['busy'] or self._gpu_loaded(): return
+        def job():
+            if not self.model_lock.acquire(blocking=False): return
+            try:
+                import torch
+                if not torch.cuda.is_available() or self._gpu_loaded(): return
+                if torch.cuda.mem_get_info(torch.device(self.dev))[0] < min_free_gb * 2 ** 30: return      # a shared GPU without room: load on demand
+                self._model('s1'); self.say('decomposer ready')
+            except Exception as e:                                                   # a failed preload is retried by Render
+                self.say(f'preload skipped: {e}')
+            finally:
+                self.model_lock.release()
+        threading.Thread(target=job, daemon=True).start()
+
+    def release_models(self, reason=''):
+        """drop every network and the shared base pipeline (GPU memory and the parked text encoder); decompositions and
+        looks stay cached."""
+        with self.model_lock:
+            self.models.clear(); self.__dict__.pop('_scorer', None)
+            if 'irismix.flux' in sys.modules: sys.modules['irismix.flux'].release_pipelines()
+            self._free_gpu()
+        if reason: self.say(reason)
+
+    def start_idle_release(self, minutes):
+        """give the GPU memory back after `minutes` without use (0: never)."""
+        if not minutes or minutes <= 0: return
+        def loop():
+            while True:
+                time.sleep(30)
+                if self.status['busy'] or not self._gpu_loaded() or time.time() - self.last_use < minutes * 60: continue
+                if not self.lock.acquire(blocking=False): continue
+                try:
+                    if not self.status['busy']:
+                        self.release_models(f'GPU memory released after {minutes:g} idle minutes (the next render loads the models again)')
+                finally:
+                    self.lock.release()
+        threading.Thread(target=loop, daemon=True).start()
+
     def _model(self, name):
+        with self.model_lock: return self._model_locked(name)
+
+    def _model_locked(self, name):
+        self.last_use = time.time()
         if name not in self.models:
             if not self.keep and self.models: self.models.clear(); self._free_gpu()
             if name == 'editor' and not self.keep:          # the editor brings its own transformer: drop the shared base
@@ -190,7 +242,7 @@ class Engine:
             arr, info = RD.prepare(it)
             rm = self._model('rm'); self.say('Renderer: rendering')
             with torch.autocast(torch.device(self.dev).type, dtype=torch.bfloat16): rm.text([it['text']])
-            rm.p.text_encoder.to('cpu'); self._free_gpu()
+            rm.park_text_encoder(); self._free_gpu()
             t0 = time.time()
             H5 = RD.render_one(rm, arr, it['text'], sigma=self.sigma, steps=self.steps, seed=self.seed)
             I, _ = RD.compose_full(S, C, H5, info, av); t['render'] = time.time() - t0
@@ -212,7 +264,7 @@ class Engine:
                    total=time.time() - T0, rendered=bool(render), target_u8=S)
         if not self.keep: self.models.clear(); self._free_gpu()
         if self.face is not None and self.face.key != image_sha1(S): self.face = None
-        self.out = out; self.say(f'done in {out["total"]:.1f} s')
+        self.out = out; self.last_use = time.time(); self.say(f'done in {out["total"]:.1f} s')
         return out
 
     @staticmethod

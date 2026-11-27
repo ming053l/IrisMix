@@ -6,6 +6,9 @@ Every path can be overridden by an environment variable (and the scripts expose 
   IRISMIX_BASE_MODEL    FLUX.2-klein-4B, a Hugging Face id or a local diffusers folder
   IRISMIX_LANDMARKER    MediaPipe face_landmarker.task (downloaded into the cache when missing)
   IRISMIX_SEG_DEVICE    cpu | cuda for the face parser (default: cuda when available)
+  IRISMIX_THREADS       CPU threads of the scripts and the viewer (default min(8, #cores); see limit_cpu_threads)
+  IRISMIX_CAPTION_CACHE_MB  size of the on-disk cache of renderer caption embeddings (default 512; 0 = off): a cached
+                        caption needs no text encoder at all
 renderer sampler (paper): sigma 0.65, one Euler step, Omega dilated by 2 px, brows inside Omega, seed 0, bf16.
 The appendix configuration is reachable with IRISMIX_SIGMA=0.7 IRISMIX_STEPS=4 IRISMIX_OMEGA_R=0 (0 = 6 px default)."""
 import os
@@ -26,6 +29,20 @@ PARSER_REVISION = '758b82e15a0178c9db39c1ff666a8b56e3a550c8'
 # MediaPipe face landmarker (Apache-2.0)
 LANDMARKER_URL = ('https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/'
                   'face_landmarker.task')
+
+
+def limit_cpu_threads(n=None):
+    """cap the CPU threads of OpenMP / BLAS, OpenCV and PyTorch (default $IRISMIX_THREADS, else min(8, #cores)), so a run
+    does not occupy every core of a shared machine. Measured: 8 threads are as fast as 48 for this pipeline, and the
+    outputs are bit-identical. Call it before numpy / torch are imported (the scripts do); ComfyUI does not."""
+    n = int(n or os.environ.get('IRISMIX_THREADS') or min(8, os.cpu_count() or 1))
+    for v in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS'): os.environ.setdefault(v, str(n))
+    os.environ.setdefault('IRISMIX_THREADS', str(n))
+    try:
+        import cv2; cv2.setNumThreads(n)
+    except ImportError:
+        pass
+    return n
 
 
 def landmarker_path():
