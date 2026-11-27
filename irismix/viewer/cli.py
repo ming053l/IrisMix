@@ -19,7 +19,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--port', type=int, default=7007)
     ap.add_argument('--host', default='127.0.0.1', help='0.0.0.0 to accept connections from other machines')
-    ap.add_argument('--out', default=os.path.join(config.REPO, 'outputs', 'viewer'), help='export directory')
+    ap.add_argument('--out', default=os.path.join(config.REPO, 'outputs', 'viewer') if config.IN_CHECKOUT else os.path.join(os.getcwd(), 'irismix_outputs'),
+                    help='export directory')
     ap.add_argument('--examples', default=None, help='extra folder of example photos (the bundled assets/examples are always shown)')
     ap.add_argument('--keep_models', action='store_true', help='keep the decomposer and the renderer on the GPU (about 40 GB)')
     ap.add_argument('--idle_release', type=float, default=10, help='minutes without use after which the GPU memory is given back (0: never)')

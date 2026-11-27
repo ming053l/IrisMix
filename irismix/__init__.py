@@ -11,7 +11,7 @@
   captions       structured per-part captions
   render_steps   the steps around the renderer: conditions of a look, 512-crop preparation, masked-residual paste-back
   renderer       the renderer (Renderer.sample)
-  pipeline       a look = source + per-part references, end to end (used by scripts/infer.py)
+  pipeline       a look = source + per-part references, end to end (used by infer.py, the irismix-infer command)
   layer_recover  closed-form layer (alpha~, F') of a render
   edits          layer edits (strength, part toggles, recolour, hue rotation) by plain alpha-over
   viewer         interactive browser app (scripts/viewer.py): compose, render and edit looks over an SSH-forwarded port

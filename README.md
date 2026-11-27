@@ -58,8 +58,11 @@ git clone https://github.com/ming053l/IrisMix.git && cd IrisMix
 conda create -n irismix python=3.10 -y && conda activate irismix
 pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
-huggingface-cli download ming0531/IrisMix --local-dir weights
+huggingface-cli download ming0531/IrisMix --local-dir weights   # optional: missing weights are downloaded on first use
 ```
+
+`pip install -e .` also installs the commands `irismix-infer` (= `python scripts/infer.py`) and `irismix-studio`
+(= `python scripts/viewer.py`); a non-editable install (`pip install .`) keeps the weights in `~/.cache/irismix/weights`.
 
 | File | Component |
 |---|---|
@@ -91,7 +94,7 @@ Outputs: `result.png` (render), `paste.png` (warp-only composite after the trans
 float16) and `layer.png` (RGBA), plus `edited.png` when an edit is requested. `--warp_only` stops after the transfer
 rules. The sampler of the paper is the default (`irismix/config.py`): σ 0.65, one Euler step, edit region dilated by 2 px,
 seed 0, bf16. The Python API is in `irismix/pipeline.py` (`decompose`, `paste`, `look_item`, `apply_edits`); see
-`scripts/infer.py` for the complete flow.
+`irismix/infer.py` for the complete flow.
 
 ## IrisMix Studio
 

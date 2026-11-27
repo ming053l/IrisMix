@@ -113,7 +113,10 @@ class OneStep:
 
 
 def load_state(path):
-    """checkpoint -> state dict (.safetensors, or a torch .pt written by an older trainer)."""
+    """checkpoint -> state dict (.safetensors, or a torch .pt written by an older trainer); a missing released file is
+    downloaded first (config.weight_file)."""
+    from irismix import config
+    path = config.weight_file(path)
     if path.endswith('.safetensors'):
         from safetensors.torch import load_file
         return load_file(path)
@@ -170,7 +173,7 @@ def load_pipeline(dev, text_encoder=False, base_model=None, lora_init=None, skip
         if skip_text_encoder: comp.update(text_encoder=None, tokenizer=None)
         else: comp['text_encoder'], comp['tokenizer'] = _load_text_encoder(key[0], dev if text_encoder else 'cpu')
         pipe = Flux2KleinPipeline.from_pretrained(key[0], torch_dtype=torch.bfloat16, **comp)
-        lora = key[1]
+        lora = config.weight_file(key[1])
         pipe.load_lora_weights(os.path.dirname(lora), weight_name=os.path.basename(lora))
         pipe.transformer.to(dev); pipe.vae.to(dev); pipe._irismix_lora = None
         if shared: _PIPES[key] = pipe

@@ -17,10 +17,11 @@ test = ["pytest>=7"]
 
 [project.urls]
 Homepage = "https://ming053l.github.io/IrisMix/"
-Demo = "https://ming053l.github.io/IrisMix-demo/"
 Repository = "https://github.com/ming053l/IrisMix"
 
 [project.scripts]
+irismix-infer = "irismix.infer:main"
+irismix-studio = "irismix.viewer.cli:main"
 irismix-viewer = "irismix.viewer.cli:main"
 
 [tool.setuptools.dynamic]

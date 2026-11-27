@@ -2,7 +2,8 @@
 
 Every path can be overridden by an environment variable (and the scripts expose the important ones as CLI arguments):
   IRISMIX_CACHE         cache directory (default ~/.cache/irismix): prompt embeddings, the MediaPipe landmarker
-  IRISMIX_WEIGHTS       directory with the released weights (default <repo>/weights)
+  IRISMIX_WEIGHTS       directory with the released weights (default <repo>/weights in a checkout, <cache>/weights for an
+                        installed package); missing released files are downloaded from Hugging Face (WEIGHTS_REPO)
   IRISMIX_BASE_MODEL    FLUX.2-klein-4B, a Hugging Face id or a local diffusers folder
   IRISMIX_LANDMARKER    MediaPipe face_landmarker.task (downloaded into the cache when missing)
   IRISMIX_SEG_DEVICE    cpu | cuda for the face parser (default: cuda when available)
@@ -15,12 +16,15 @@ import os
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_DIR = os.path.expanduser(os.environ.get('IRISMIX_CACHE', os.path.join('~', '.cache', 'irismix')))
-WEIGHTS_DIR = os.path.expanduser(os.environ.get('IRISMIX_WEIGHTS', os.path.join(REPO, 'weights')))
+IN_CHECKOUT = os.path.isdir(os.path.join(REPO, 'assets'))   # a clone of the repository (examples, scripts), not a pip install
+WEIGHTS_DIR = os.path.expanduser(os.environ.get('IRISMIX_WEIGHTS', os.path.join(REPO if IN_CHECKOUT else CACHE_DIR, 'weights')))
+WEIGHTS_REPO = 'ming0531/IrisMix'                            # Hugging Face model repository of the released weights
 
 BASE_MODEL = os.environ.get('IRISMIX_BASE_MODEL', 'black-forest-labs/FLUX.2-klein-4B')
 LORA_INIT = os.path.join(WEIGHTS_DIR, 'irismix_lora_init.safetensors')    # rank-32 LoRA modules (init of both models)
 DECOMPOSER_CKPT = os.path.join(WEIGHTS_DIR, 'irismix_decomposer.safetensors')       # decomposer LoRA + skip convs (E / H)
 RENDERER_CKPT = os.path.join(WEIGHTS_DIR, 'irismix_renderer.safetensors')       # renderer LoRA (EMA) + skip convs
+RELEASED = ('irismix_lora_init.safetensors', 'irismix_decomposer.safetensors', 'irismix_renderer.safetensors')
 N_LORA = 120                                                                # LoRA tensors per checkpoint
 
 # face parser (SegFormer, CelebAMask-HQ labels; non-commercial licence, see NOTICE), pinned revision
@@ -43,6 +47,14 @@ def limit_cpu_threads(n=None):
     except ImportError:
         pass
     return n
+
+
+def weight_file(path):
+    """path of a released weight file, downloaded from Hugging Face (WEIGHTS_REPO) into its folder when it is missing."""
+    if os.path.exists(path) or os.path.basename(path) not in RELEASED: return path
+    from huggingface_hub import hf_hub_download
+    print(f'downloading {os.path.basename(path)} from huggingface.co/{WEIGHTS_REPO} into {os.path.dirname(path)}', flush=True)
+    return hf_hub_download(WEIGHTS_REPO, os.path.basename(path), local_dir=os.path.dirname(path))
 
 
 def landmarker_path():
